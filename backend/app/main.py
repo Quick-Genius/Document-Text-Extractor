@@ -1,0 +1,173 @@
+from fastapi import FastAPI, Request, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+import logging
+from contextlib import asynccontextmanager
+import os
+
+from app.core.config import settings
+from app.api.v1 import documents, jobs, export, websocket
+from app.utils.redis_client import redis_client
+from app.core.websocket_manager import websocket_manager
+
+import boto3
+from botocore.exceptions import ClientError, BotoCoreError
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+
+async def check_neon_db() -> bool:
+    """Check Neon DB connectivity using psycopg2"""
+    try:
+        import psycopg2
+        from psycopg2 import sql
+        
+        # Parse the DATABASE_URL
+        db_url = settings.DATABASE_URL
+        
+        # Connect with timeout
+        conn = psycopg2.connect(db_url, connect_timeout=10)
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1")
+        conn.close()
+        
+        logger.info(f"Neon DB connection successful (using {'pooled' if '-pooler' in db_url else 'direct'} URL)")
+        return True
+    except psycopg2.OperationalError as e:
+        logger.warning(f"Neon DB operational error: {e}")
+        return False
+    except ImportError:
+        logger.warning("psycopg2 not installed; Neon DB connectivity check skipped")
+        return False
+    except Exception as e:
+        logger.warning(f"Neon DB connection check failed: {type(e).__name__}: {e}")
+        return False
+
+
+async def check_aws_s3() -> bool:
+    """Check AWS S3 connectivity"""
+    if settings.STORAGE_TYPE.lower() != "s3":
+        logger.info("Storage type is not S3; skipping S3 connectivity check")
+        return False
+
+    try:
+        if not settings.AWS_ACCESS_KEY_ID or not settings.AWS_SECRET_ACCESS_KEY:
+            logger.warning("AWS credentials not configured; S3 connectivity check skipped")
+            return False
+
+        s3 = boto3.client(
+            "s3",
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            region_name=settings.AWS_REGION,
+        )
+        s3.head_bucket(Bucket=settings.AWS_S3_BUCKET)
+        logger.info("AWS S3 connection successful")
+        return True
+    except (ClientError, BotoCoreError) as e:
+        logger.warning(f"AWS S3 connectivity check failed: {e}")
+        return False
+    except Exception as e:
+        logger.warning(f"AWS S3 check failed: {type(e).__name__}: {e}")
+        return False
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan events"""
+    # Startup
+    logger.info("Starting application...")
+
+    neon_ok = await check_neon_db()
+    s3_ok = await check_aws_s3()
+
+    app.state.neon_connected = neon_ok
+    app.state.s3_connected = s3_ok
+
+    if neon_ok:
+        logger.info("Neon DB connected successfully")
+    else:
+        logger.warning("Neon DB connection failed")
+
+    if s3_ok:
+        logger.info("AWS S3 connected successfully")
+    else:
+        logger.warning("AWS S3 connection failed")
+
+    await redis_client.connect()
+    await websocket_manager.start()   # ← start Redis pub/sub listener
+    yield
+
+    # Shutdown
+    logger.info("Shutting down application...")
+    await websocket_manager.stop()
+    await redis_client.disconnect()
+
+# Create FastAPI app
+app = FastAPI(
+    title="Document Processing API",
+    version="1.0.0",
+    description="Async document processing workflow system",
+    lifespan=lifespan
+)
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Gzip compression
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# Exception handlers
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": exc.errors(), "body": exc.body},
+    )
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled exception: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": "Internal server error"},
+    )
+
+# API routers
+app.include_router(documents.router, prefix="/api/v1", tags=["documents"])
+app.include_router(jobs.router, prefix="/api/v1", tags=["jobs"])
+app.include_router(export.router, prefix="/api/v1", tags=["export"])
+app.include_router(websocket.router, prefix="/api/v1", tags=["websocket"])
+
+# Health check
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "version": "1.0.0",
+        "neon_connected": getattr(app.state, "neon_connected", False),
+        "s3_connected": getattr(app.state, "s3_connected", False),
+    }
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=settings.DEBUG,
+        log_level="info"
+    )

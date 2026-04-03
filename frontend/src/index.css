@@ -1,0 +1,143 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-on-primary-fixed-variant: #3323cc;
+  --color-surface-container-low: #f2f4f6;
+  --color-on-error-container: #93000a;
+  --color-tertiary-fixed: #e1e0ff;
+  --color-on-primary-fixed: #0f0069;
+  --color-on-secondary-container: #fffbff;
+  --color-background: #f7f9fb;
+  --color-on-tertiary-fixed-variant: #2f2ebe;
+  --color-surface-variant: #e0e3e5;
+  --color-on-secondary-fixed: #25005a;
+  --color-surface-container: #eceef0;
+  --color-on-surface: #191c1e;
+  --color-primary-fixed-dim: #c3c0ff;
+  --color-outline: #777587;
+  --color-on-tertiary-fixed: #07006c;
+  --color-outline-variant: #c7c4d8;
+  --color-primary-fixed: #e2dfff;
+  --color-primary-container: #4f46e5;
+  --color-error: #ba1a1a;
+  --color-secondary-fixed-dim: #d2bbff;
+  --color-surface-container-highest: #e0e3e5;
+  --color-secondary: #712ae2;
+  --color-on-surface-variant: #464555;
+  --color-inverse-primary: #c3c0ff;
+  --color-on-secondary-fixed-variant: #5a00c6;
+  --color-on-primary-container: #dad7ff;
+  --color-surface: #f7f9fb;
+  --color-surface-bright: #f7f9fb;
+  --color-tertiary-container: #4b4dd8;
+  --color-surface-container-high: #e6e8ea;
+  --color-tertiary: #3130c0;
+  --color-on-primary: #ffffff;
+  --color-on-background: #191c1e;
+  --color-on-secondary: #ffffff;
+  --color-primary: #3525cd;
+  --color-inverse-surface: #2d3133;
+  --color-surface-dim: #d8dadc;
+  --color-on-tertiary: #ffffff;
+  --color-on-tertiary-container: #d9d8ff;
+  --color-surface-tint: #4d44e3;
+  --color-surface-container-lowest: #ffffff;
+  --color-inverse-on-surface: #eff1f3;
+  --color-tertiary-fixed-dim: #c0c1ff;
+  --color-secondary-container: #8a4cfc;
+  --color-secondary-fixed: #eaddff;
+  --color-error-container: #ffdad6;
+  --color-on-error: #ffffff;
+}
+
+/* ===== Design System / CSS Variables ===== */
+:root {
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ===== Base Resets ===== */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-background);
+  min-height: 100vh;
+}
+
+#root {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  min-height: 100vh;
+  text-align: left;
+  border: none;
+}
+
+/* ===== Material Symbols ===== */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* ===== Premium Glassmorphism Utilities ===== */
+.glass-card {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(199, 196, 216, 0.2);
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(20px) saturate(1.8);
+  -webkit-backdrop-filter: blur(20px) saturate(1.8);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+}
+
+/* ===== Gradient Utilities ===== */
+.signature-gradient {
+  background: linear-gradient(135deg, #4f46e5 0%, #712ae2 100%);
+}
+
+.signature-text-gradient {
+  background: linear-gradient(135deg, #4f46e5 0%, #712ae2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===== Smooth Scrollbar ===== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ===== Focus Ring ===== */
+*:focus-visible {
+  outline: 2px solid #818cf8;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
