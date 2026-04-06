@@ -5,7 +5,9 @@ import re
 import math
 import os
 import httpx
+import logging
 
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Shared stopwords (English)

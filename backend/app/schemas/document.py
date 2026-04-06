@@ -35,9 +35,12 @@ class ProcessedData(BaseModel):
 
 class DocumentResponse(DocumentBase):
     id: str
+    userId: str
     uploadedAt: datetime
+    updatedAt: Optional[datetime] = None
     job: Optional[Job] = None
     processedData: Optional[ProcessedData] = None
+    queuePosition: Optional[int] = None
 
     class Config:
         from_attributes = True

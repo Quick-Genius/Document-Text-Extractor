@@ -1,0 +1,182 @@
+# Implementation Plan
+
+- [x] 1. Write bug condition exploration test
+  - **Property 1: Bug Condition** - Batch Upload Deadlock and Concurrency Issues
+  - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
+  - **DO NOT attempt to fix the test or the code when it fails**
+  - **NOTE**: This test encodes the expected behavior - it will validate the fix when it passes after implementation
+  - **GOAL**: Surface counterexamples that demonstrate the deadlock and concurrency bugs exist
+  - **Scoped PBT Approach**: Scope the property to concrete failing cases: batch uploads of 2-10 documents
+  - Test that batch uploads of 2+ documents complete successfully with proper transaction isolation, connection pooling, locking, task coordination, checkpoint validation, timeouts, and rate limiting (from Bug Condition in design)
+  - Run test on UNFIXED code
+  - **EXPECTED OUTCOME**: Test FAILS (this is correct - it proves the bug exists)
+  - Document counterexamples found:
+    - Documents remain in PENDING status after 5 minutes
+    - Connection pool exhaustion errors in logs
+    - Redis singleton deadlock errors
+    - Lost job status updates
+    - Worker threads blocked indefinitely
+  - Mark task complete when test is written, run, and failure is documented
+  - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8_
+
+- [x] 2. Write preservation property tests (BEFORE implementing fix)
+  - **Property 2: Preservation** - Single Document and Sequential Processing
+  - **IMPORTANT**: Follow observation-first methodology
+  - Observe: Single document uploads complete successfully on unfixed code
+  - Observe: Sequential uploads (with 5 second gaps) complete successfully on unfixed code
+  - Observe: Document cancellation works correctly on unfixed code
+  - Observe: Document retry works correctly on unfixed code
+  - Observe: Progress events are published correctly on unfixed code
+  - Write property-based tests: for all non-batch uploads (single document or sequential with time gaps), the system processes successfully with existing behavior (from Preservation Requirements in design)
+  - Verify tests pass on UNFIXED code
+  - **EXPECTED OUTCOME**: Tests PASS (this confirms baseline behavior to preserve)
+  - Mark task complete when tests are written, run, and passing on unfixed code
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8_
+
+- [x] 3. Fix for batch upload deadlock and concurrency issues
+
+  - [x] 3.1 Add configuration parameters for concurrency controls
+    - Add `PRISMA_POOL_SIZE` to Settings class (default 20)
+    - Add `PRISMA_POOL_TIMEOUT` to Settings class (default 30)
+    - Add `PRISMA_OPERATION_TIMEOUT` to Settings class (default 10)
+    - Add `TASK_TOTAL_TIMEOUT` to Settings class (default 900)
+    - Add `BATCH_UPLOAD_MAX_QUEUE_DEPTH` to Settings class (default 50)
+    - Add `BATCH_UPLOAD_MAX_CONCURRENT_TASKS` to Settings class (default 5)
+    - Update `.env.example` with new configuration variables
+    - _Bug_Condition: isBugCondition(input) where input.documentCount >= 2_
+    - _Expected_Behavior: Configuration parameters enable proper concurrency controls_
+    - _Preservation: Single document uploads unaffected by new configuration_
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8_
+
+  - [x] 3.2 Implement transaction isolation for batch uploads
+    - Modify `create_documents_from_upload` in `document_service.py`
+    - Wrap document creation loop in Prisma transaction using `async with db.tx()`
+    - Set transaction isolation level to READ COMMITTED
+    - Ensure rollback on any document creation failure
+    - _Bug_Condition: noTransactionIsolation() causing race conditions_
+    - _Expected_Behavior: Atomic batch creation with proper isolation_
+    - _Preservation: Single document creation continues to work_
+    - _Requirements: 2.1_
+
+  - [x] 3.3 Implement connection pooling for Prisma
+    - Modify `get_prisma()` function to configure connection pool
+    - Add connection pool configuration to Prisma client initialization
+    - Set `pool_size` from `settings.PRISMA_POOL_SIZE`
+    - Set `pool_timeout` from `settings.PRISMA_POOL_TIMEOUT`
+    - Implement connection reuse within task context
+    - _Bug_Condition: noConnectionPooling() causing connection exhaustion_
+    - _Expected_Behavior: Connection reuse prevents pool exhaustion_
+    - _Preservation: Existing database operations continue to work_
+    - _Requirements: 2.2_
+
+  - [x] 3.4 Implement database locking for job status updates
+    - Modify `update_job_status` in `tasks.py`
+    - Add row-level locking using raw SQL `FOR UPDATE` clause
+    - Wrap update in transaction to ensure atomic read-modify-write
+    - Query job with `SELECT ... FOR UPDATE` before update
+    - _Bug_Condition: noDatabaseLocking() causing lost updates_
+    - _Expected_Behavior: Atomic job status updates with no lost writes_
+    - _Preservation: Job status updates for single documents continue to work_
+    - _Requirements: 2.3_
+
+  - [x] 3.5 Verify task-scoped Redis clients are used everywhere
+    - Audit all Redis usage in `tasks.py` to ensure `create_task_redis()` is used
+    - Verify `task_redis.close()` is called in finally blocks with timeout
+    - Ensure no references to global `redis_client` singleton in Celery tasks
+    - Add timeout protection to Redis close operations
+    - _Bug_Condition: redisSingletonUsed() causing deadlocks_
+    - _Expected_Behavior: Each task has isolated Redis connection_
+    - _Preservation: Redis pub/sub events continue to be delivered_
+    - _Requirements: 2.4_
+
+  - [x] 3.6 Implement distributed locking for task coordination
+    - Add Redis-based distributed lock using `redis.lock()` in `process_document_async`
+    - Acquire lock before starting document processing
+    - Set lock timeout from `settings.BATCH_UPLOAD_MAX_CONCURRENT_TASKS`
+    - Release lock in finally block after processing completes
+    - Implement lock retry logic with exponential backoff
+    - _Bug_Condition: noTaskCoordination() causing resource contention_
+    - _Expected_Behavior: Controlled concurrent task execution_
+    - _Preservation: Single document processing continues without delays_
+    - _Requirements: 2.5_
+
+  - [x] 3.7 Implement checkpoint validation for hung tasks
+    - Add checkpoint checks in `process_document_async` between stages
+    - Check total elapsed time against `settings.TASK_TOTAL_TIMEOUT`
+    - Add checkpoint after parsing stage
+    - Add checkpoint after extraction stage
+    - Add checkpoint before storing stage
+    - Raise exception to fail task gracefully if timeout exceeded
+    - _Bug_Condition: noCheckpointValidation() causing indefinite hangs_
+    - _Expected_Behavior: Tasks fail gracefully after timeout_
+    - _Preservation: Tasks completing within timeout continue to work_
+    - _Requirements: 2.6_
+
+  - [x] 3.8 Implement operation timeouts for Prisma operations
+    - Wrap `db.document.create()` in `asyncio.wait_for()` with timeout from `settings.PRISMA_OPERATION_TIMEOUT`
+    - Wrap `db.job.update()` in `asyncio.wait_for()` with timeout
+    - Wrap `db.processeddata.create()` in `asyncio.wait_for()` with timeout
+    - Add timeout error handling to log and fail task gracefully
+    - _Bug_Condition: noOperationTimeouts() causing indefinite blocking_
+    - _Expected_Behavior: Operations fail gracefully after timeout_
+    - _Preservation: Fast database operations continue without timeout_
+    - _Requirements: 2.7_
+
+  - [x] 3.9 Implement rate limiting and queue depth checking
+    - Add queue depth validation in `create_documents_from_upload`
+    - Query count of PENDING + PROCESSING documents before batch upload
+    - Reject batch if queue depth exceeds `settings.BATCH_UPLOAD_MAX_QUEUE_DEPTH`
+    - Return 429 Too Many Requests with retry-after header
+    - Add logging for rate limit rejections
+    - _Bug_Condition: noRateLimiting() causing system overload_
+    - _Expected_Behavior: System rejects batches when overloaded_
+    - _Preservation: Normal load conditions continue to work_
+    - _Requirements: 2.8_
+
+  - [x] 3.10 Verify bug condition exploration test now passes
+    - **Property 1: Expected Behavior** - Batch Upload Processing with Concurrency Controls
+    - **IMPORTANT**: Re-run the SAME test from task 1 - do NOT write a new test
+    - The test from task 1 encodes the expected behavior
+    - When this test passes, it confirms the expected behavior is satisfied
+    - Run bug condition exploration test from step 1
+    - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
+    - Verify all 8 fixes are working:
+      - Transaction isolation prevents race conditions
+      - Connection pooling prevents exhaustion
+      - Database locking prevents lost updates
+      - Task-scoped Redis prevents deadlocks
+      - Distributed locking coordinates tasks
+      - Checkpoint validation detects hung tasks
+      - Operation timeouts prevent indefinite blocking
+      - Rate limiting prevents system overload
+    - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8_
+
+  - [x] 3.11 Verify preservation tests still pass
+    - **Property 2: Preservation** - Single Document and Sequential Processing
+    - **IMPORTANT**: Re-run the SAME tests from task 2 - do NOT write new tests
+    - Run preservation property tests from step 2
+    - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
+    - Verify all preserved behaviors:
+      - Single document uploads work correctly
+      - Sequential processing works correctly
+      - Task completion updates status correctly
+      - Progress events are delivered correctly
+      - Normal operations don't trigger timeouts
+      - Performance characteristics maintained
+      - Error handling continues to work
+      - Cancellation handling continues to work
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8_
+
+- [x] 4. Checkpoint - Ensure all tests pass
+  - Run all bug condition exploration tests and verify they pass
+  - Run all preservation property tests and verify they pass
+  - Run integration tests with batch uploads of various sizes (2, 5, 10, 20 documents)
+  - Verify no deadlocks occur during concurrent batch uploads
+  - Verify connection pool is not exhausted
+  - Verify Redis singleton deadlocks are eliminated
+  - Verify job status updates are not lost
+  - Verify checkpoint validation detects hung tasks
+  - Verify operation timeouts prevent indefinite blocking
+  - Verify rate limiting rejects overload conditions
+  - Verify single document uploads continue to work
+  - Ask the user if questions arise

@@ -1,0 +1,4 @@
+# file: /Users/sky_walker/Documents/Assesments /Predusk Technology pvt ltd 2/backend/app/workers/processors/pdf_processor.py
+# hypothesis_version: 6.151.10
+
+[0.1, 30.0, 100, 120, 2048, '/Resources', '/XObject', '10', 'Authorization', 'GROQ_API_KEY', 'JPEG', 'category', 'choices', 'content', 'has_images', 'image_url', 'keywords', 'max_tokens', 'message', 'messages', 'metadata', 'model', 'ocr_used', 'pages', 'rb', 'role', 'summary', 'temperature', 'text', 'title', 'type', 'url', 'user', 'utf-8']

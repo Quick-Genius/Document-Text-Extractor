@@ -162,6 +162,32 @@ async def health_check():
         "s3_connected": getattr(app.state, "s3_connected", False),
     }
 
+
+@app.get("/api/v1/admin/cleanup-tasks")
+async def cleanup_stale_tasks():
+    """
+    Admin endpoint to cleanup stale Celery tasks
+    
+    This removes tasks from the queue that are:
+    - Not in the database
+    - Already completed/cancelled/failed in database
+    """
+    from app.utils.celery_utils import cleanup_stale_tasks as cleanup_fn
+    from app.utils.db_pool import get_prisma_with_pool
+    
+    db = get_prisma_with_pool()
+    await db.connect()
+    
+    try:
+        stats = await cleanup_fn(db)
+        return {
+            "status": "success",
+            "message": "Cleanup completed",
+            "stats": stats
+        }
+    finally:
+        await db.disconnect()
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(

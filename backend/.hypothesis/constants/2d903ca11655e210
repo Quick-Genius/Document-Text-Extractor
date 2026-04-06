@@ -1,0 +1,4 @@
+# file: /Users/sky_walker/Documents/Assesments /Predusk Technology pvt ltd 2/backend/app/services/document_service.py
+# hypothesis_version: 6.151.10
+
+[3600, ',', '.', '1', 'CANCELLED', 'COMPLETED', 'Document not found', 'FAILED', 'PENDING', 'PROCESSING', 'QUEUED', 'SIGKILL', 'User not found', 'category', 'celeryTaskId', 'clerkId', 'confidenceScore', 'contains', 'createdAt', 'documentId', 'document_id', 'email', 'errorMessage', 'extractedText', 'failedAt', 'filePath', 'fileSize', 'fileType', 'file_path', 'filename', 'http', 'id', 'in', 'insensitive', 'isFinalized', 'isReviewed', 'job', 'jobId', 'job_cancelled', 'job_id', 'keywords', 'lt', 'maxRetries', 'message', 'metadata', 'mode', 'originalName', 'processedData', 'retryCount', 'status', 'summary', 'timestamp', 'title', 'type', 'updatedAt', 'uploadedAt', 'uploads', 'userId']

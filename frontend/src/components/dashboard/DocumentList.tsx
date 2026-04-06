@@ -4,11 +4,11 @@ import type { ColumnDef, SortingState } from '@tanstack/react-table';
 import { useDocuments } from '../../hooks/useDocuments';
 import { StatusFilter } from './StatusFilter';
 import { SearchBar } from './SearchBar';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { ActionButtons } from './ActionButtons';
-import { cancelDocument, retryDocument } from '../../services/documentService';
+import { cancelDocument, retryDocument, deleteDocument } from '../../services/documentService';
 import { useApi } from '../../hooks/useApi';
 
 interface Document {
@@ -17,10 +17,12 @@ interface Document {
   status: string;
   uploadedAt: string;
   fileSize: number;
+  filePath?: string;
   job?: {
     retryCount?: number;
     maxRetries?: number;
   };
+  queuePosition?: number;
 }
 
 export function DocumentList() {
@@ -35,6 +37,7 @@ export function DocumentList() {
   }>({ status: [], search: '', sort_by: 'uploadedAt', order: 'desc', page: 1, limit: 10 });
   const [sorting, setSorting] = useState<SortingState>([]);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const navigate = useNavigate();
   
   const { data, isLoading, error, refetch } = useDocuments(filters);
 
@@ -60,6 +63,17 @@ export function DocumentList() {
     }
   };
 
+  const handleDelete = async (documentId: string, permanent: boolean) => {
+    try {
+      await deleteDocument(api, documentId, permanent);
+      setNotification({ type: 'success', message: permanent ? 'Record removed successfully' : 'Document deleted successfully' });
+      refetch();
+    } catch (err: any) {
+      setNotification({ type: 'error', message: err.response?.data?.detail || 'Failed to act on document' });
+      throw err;
+    }
+  };
+
   const columns = useMemo<ColumnDef<Document>[]>(() => [
     {
       accessorKey: 'originalName',
@@ -71,12 +85,14 @@ export function DocumentList() {
       cell: ({ row }) => {
         const status = row.original.status;
         const iconColorMap: Record<string, string> = {
+          'PENDING': 'text-slate-500 bg-slate-100',
           'QUEUED': 'text-slate-500 bg-slate-100',
-          'PROCESSING': 'text-blue-600 bg-blue-100',
+          'PROCESSING': 'text-blue-600 bg-blue-100 ring-2 ring-blue-100',
           'COMPLETED': 'text-primary-container bg-primary-fixed/30',
           'FAILED': 'text-error bg-error-container',
         };
         const iconMap: Record<string, string> = {
+          'PENDING': 'pending',
           'QUEUED': 'pending',
           'PROCESSING': 'sync',
           'COMPLETED': 'description',
@@ -102,22 +118,31 @@ export function DocumentList() {
       cell: ({ row }) => {
         const status = row.getValue('status') as string;
         const colorMap: Record<string, string> = {
+          'PENDING': 'bg-slate-100 text-slate-600',
           'QUEUED': 'bg-slate-100 text-slate-600',
-          'PROCESSING': 'bg-blue-100 text-blue-700',
+          'PROCESSING': 'bg-blue-100 text-blue-700 shadow-[0_0_12px_rgba(59,130,246,0.5)]',
           'COMPLETED': 'bg-emerald-100 text-emerald-700',
           'FAILED': 'bg-error-container text-error',
         };
         const dotMap: Record<string, string> = {
+          'PENDING': 'bg-slate-400',
           'QUEUED': 'bg-slate-400',
           'PROCESSING': 'bg-blue-500 animate-pulse',
           'COMPLETED': 'bg-emerald-500',
           'FAILED': 'bg-error',
         };
         return (
-          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-tight ${colorMap[status] || colorMap.QUEUED}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${dotMap[status] || dotMap.QUEUED}`}></span>
-            {status}
-          </span>
+          <div className="flex flex-col items-start gap-1">
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-tight transition-all duration-300 ${colorMap[status] || colorMap.QUEUED}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${dotMap[status] || dotMap.QUEUED}`}></span>
+              {status}
+            </span>
+            {status === 'PENDING' && row.original.queuePosition !== undefined && (
+              <span className="text-[10px] text-slate-500 font-semibold tracking-wider ml-1">
+                WAITLIST: #{row.original.queuePosition}
+              </span>
+            )}
+          </div>
         );
       },
     },
@@ -139,18 +164,13 @@ export function DocumentList() {
       id: 'actions',
       header: () => <span className="text-xs font-bold uppercase tracking-widest text-on-surface-variant block text-right">Actions</span>,
       cell: ({ row }) => (
-        <div className="flex items-center justify-end gap-3">
+        <div className="flex items-center justify-end gap-3" onClick={(e) => e.stopPropagation()}>
           <ActionButtons
             document={row.original}
             onCancel={handleCancel}
             onRetry={handleRetry}
+            onDelete={handleDelete}
           />
-          <Link 
-            to={`/documents/${row.original.id}`}
-            className="text-on-surface-variant hover:text-primary transition-colors inline-block"
-          >
-            <span className="material-symbols-outlined">chevron_right</span>
-          </Link>
         </div>
       ),
     }
@@ -197,8 +217,7 @@ export function DocumentList() {
       )}
       <div className="p-6 border-b border-outline-variant/10 flex flex-col md:flex-row justify-between gap-4 bg-surface-container-lowest/50">
         <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0">
-          {/* Mock filters until StatusFilter is refactored, or use the existing component if adapted to Tailwind classes. For now let's just use what's there and wrap it or rely on tailwind. */}
-          <StatusFilter onChange={status => setFilters({ ...filters, status })} />
+          <StatusFilter onChange={status => setFilters({ ...filters, status: status.join(',') as any })} />
         </div>
         <div className="relative">
           <SearchBar onSearch={search => setFilters({ ...filters, search })} />
@@ -229,7 +248,8 @@ export function DocumentList() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.05 }}
-                  className="hover:bg-surface-container-high/40 transition-colors group"
+                  onClick={() => navigate(`/documents/${row.original.id}`)}
+                  className="hover:bg-surface-container-high/40 transition-colors group cursor-pointer"
                 >
                   {row.getVisibleCells().map(cell => (
                     <td key={cell.id} className="px-8 py-5">

@@ -62,8 +62,8 @@ export const getDocumentById = async (api: AxiosInstance, id: string) => {
   return response.data;
 };
 
-export const deleteDocument = async (api: AxiosInstance, id: string) => {
-  const response = await api.delete(`/documents/${id}`);
+export const deleteDocument = async (api: AxiosInstance, id: string, permanent: boolean = false) => {
+  const response = await api.delete(`/documents/${id}`, { params: { permanent } });
   return response.data;
 };
 

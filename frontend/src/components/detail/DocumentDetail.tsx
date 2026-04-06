@@ -1,6 +1,6 @@
 import { useDocument } from '../../hooks/useDocuments';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { updateProcessedData, finalizeDocument, deleteDocument } from '../../services/documentService';
+import { updateProcessedData, finalizeDocument, deleteDocument, retryDocument } from '../../services/documentService';
 import { EditForm } from './EditForm';
 import { ProgressTracker } from './ProgressTracker';
 import { useApi } from '../../hooks/useApi';
@@ -30,6 +30,13 @@ export function DocumentDetail({ documentId }: DocumentDetailProps) {
 
   const finalizeMutation = useMutation({
     mutationFn: () => finalizeDocument(api, documentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['document', documentId] });
+    },
+  });
+
+  const retryMutation = useMutation({
+    mutationFn: () => retryDocument(api, documentId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['document', documentId] });
     },
@@ -118,6 +125,16 @@ export function DocumentDetail({ documentId }: DocumentDetailProps) {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {document.status === 'FAILED' && (
+            <button
+              onClick={() => retryMutation.mutate()}
+              disabled={retryMutation.isPending}
+              className="px-5 py-2.5 rounded-md font-semibold text-sm bg-primary text-on-primary hover:bg-primary/90 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-sm">refresh</span>
+              {retryMutation.isPending ? 'Retrying...' : 'Restart Processing'}
+            </button>
+          )}
           <button
             onClick={() => exportToJson(api, documentId)}
             disabled={!isCompleted}
@@ -219,22 +236,6 @@ export function DocumentDetail({ documentId }: DocumentDetailProps) {
                   <span className="font-semibold text-on-surface">Gemini 1.5</span>
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* Preview Thumbnail Card */}
-          <div className="bg-white rounded-lg p-4 border border-outline-variant/10 shadow-sm overflow-hidden group">
-            <p className="text-[10px] font-bold text-on-surface-variant tracking-widest uppercase mb-4">Live Preview</p>
-            <div className="relative rounded-md overflow-hidden bg-slate-100 aspect-[3/4]">
-              <img 
-                alt="Document Preview Placeholder" 
-                className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-500" 
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuA5t-S8iLhY5brn4e21o1-GioTrlAB-4IQc-KTusDfPtsowRcTT35em5l5IHLeqTsD94zGTM2wYo1buqQ1ErehCdYindH_epXX6jzzoJph5c2TQ5cFsEcxOr6dwPByzcKUUmyZCsvwvz_qrAAlds1zIcEdDxOhpjiB8Rb9vNkEDvadxeDysS3CFNBsnbAU5CDp7T3ydIRqGUhY327Jq5M2_sF0V0rAarsVxEeQRepmjDt9sIEcnU7DRofv8YIe1sgFFrQ2jK09weg"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent"></div>
-              <button className="absolute bottom-4 right-4 w-10 h-10 bg-white/90 backdrop-blur rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-colors">
-                <span className="material-symbols-outlined text-on-surface">zoom_in</span>
-              </button>
             </div>
           </div>
         </aside>

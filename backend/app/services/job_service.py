@@ -1,4 +1,3 @@
-# from prisma import Prisma
 from app.core.config import settings
 from app.utils.redis_client import redis_client
 from app.utils.exceptions import NotFoundError
@@ -6,9 +5,12 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+def get_prisma():
+    from prisma import Prisma
+    return Prisma()
+
 class JobService:
     def __init__(self):
-        # self.db = Prisma(datasource={"db": {"url": settings.DATABASE_URL}})
         pass
 
     async def retry_job(self, job_id: str):
@@ -35,16 +37,17 @@ class JobService:
             return progress_data
         
         # Fallback to DB
-        await self.db.connect()
+        db = get_prisma()
+        await db.connect()
         try:
-            job = await self.db.job.find_unique(
+            job = await db.job.find_unique(
                 where={"id": job_id},
                 include={"progressEvents": True}
             )
             if not job:
                 raise NotFoundError("Job not found")
             
-            # Sort events in memory since Prisma Python find_unique include doesn't support order_by yet in all versions
+            # Sort events in memory
             sorted_events = sorted(job.progressEvents, key=lambda x: x.timestamp, reverse=True)
             
             if sorted_events:
@@ -63,4 +66,4 @@ class JobService:
                 "updated_at": job.updatedAt.isoformat()
             }
         finally:
-            await self.db.disconnect()
+            await db.disconnect()

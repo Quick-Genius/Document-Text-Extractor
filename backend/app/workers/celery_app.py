@@ -23,6 +23,7 @@ celery_app.conf.update(
     task_time_limit=settings.TASK_TIMEOUT,
     task_soft_time_limit=settings.TASK_TIMEOUT - 60,
     worker_prefetch_multiplier=1,
+    worker_concurrency=4,  # Allow 4 concurrent tasks
     worker_max_tasks_per_child=100,
     task_acks_late=True,
     task_reject_on_worker_lost=True,

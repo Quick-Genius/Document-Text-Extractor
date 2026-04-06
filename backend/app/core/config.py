@@ -101,6 +101,18 @@ class Settings(BaseSettings):
     TASK_TIMEOUT: int = 1800  # 30 minutes
     MAX_RETRIES: int = 3
     
+    # Concurrency Controls (for deadlock fix)
+    PRISMA_POOL_SIZE: int = 20
+    PRISMA_POOL_TIMEOUT: int = 30
+    PRISMA_OPERATION_TIMEOUT: int = 10
+    TASK_TOTAL_TIMEOUT: int = 900  # 15 minutes
+    BATCH_UPLOAD_MAX_QUEUE_DEPTH: int = 50
+    BATCH_UPLOAD_MAX_CONCURRENT_TASKS: int = 5
+    
+    # Task Enqueue Retry Configuration (for batch upload task enqueue fix)
+    TASK_ENQUEUE_MAX_RETRIES: int = 3  # Number of retry attempts for task enqueuing
+    TASK_ENQUEUE_RETRY_DELAY: int = 1  # Delay between retry attempts in seconds (exponential backoff applied)
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         case_sensitive=True,

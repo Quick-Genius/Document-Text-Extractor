@@ -7,7 +7,8 @@ export const useDocuments = (filters: any) => {
   return useQuery({
     queryKey: ['documents', filters],
     queryFn: () => getDocuments(api, filters),
-    staleTime: 10_000,
+    staleTime: 5_000,
+    refetchInterval: 3000,
   });
 };
 
@@ -18,6 +19,7 @@ export const useDocument = (id: string) => {
     queryFn: () => getDocumentById(api, id),
     enabled: !!id,
     staleTime: 5_000,
+    refetchInterval: 3000,
     refetchOnWindowFocus: false,
   });
 };

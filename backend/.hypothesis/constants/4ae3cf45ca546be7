@@ -1,0 +1,4 @@
+# file: /Users/sky_walker/Documents/Assesments /Predusk Technology pvt ltd 2/backend/app/workers/tasks.py
+# hypothesis_version: 6.151.10
+
+[15.0, 60.0, 100, 300, 600, 3600, 8192, '.pdf', '.s3.', '/', 'CANCELLED', 'COMPLETED', 'Extraction complete', 'FAILED', 'PROCESSING', 'Parsing document', 'Prisma', 'cancelled', 'category', 'completed', 'completedAt', 'documentId', 'document_id', 'error', 'errorMessage', 'eventType', 'extractedText', 'extraction', 'extraction_completed', 'extraction_started', 'failedAt', 'http', 'https', 'id', 'image', 'job', 'jobId', 'job_cancelled', 'job_completed', 'job_failed', 'job_started', 'keywords', 'message', 'metadata', 'msword', 'parsing', 'parsing_completed', 'parsing_started', 'pdf', 'processed_data_id', 'progress', 's3', 's3.', 's3.amazonaws.com', 'startedAt', 'status', 'storing', 'storing_results', 'summary', 'text', 'timestamp', 'title', 'type', 'updated_at', 'wb', 'wordprocessingml']

@@ -1,0 +1,4 @@
+# file: /Users/sky_walker/Documents/Assesments /Predusk Technology pvt ltd 2/backend/app/core/config.py
+# hypothesis_version: 6.151.10
+
+[900, 1024, 1800, 6379, ',', '.env', '/api/v1', '/app/storage', 'CORS_ORIGINS', 'Settings', '[', ']', 'after', 'before', 'ignore', 'local', 'localhost', 'us-east-1']

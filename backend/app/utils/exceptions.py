@@ -7,5 +7,5 @@ class ValidationError(Exception):
 class NotFoundError(Exception):
     pass
 
-class PermissionError(Exception):
+class AccessDeniedError(Exception):
     pass

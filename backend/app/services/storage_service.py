@@ -39,6 +39,9 @@ class LocalStorageBackend(StorageBackend):
         if os.path.exists(file_path):
             os.remove(file_path)
 
+import asyncio
+from functools import partial
+
 class S3StorageBackend(StorageBackend):
     def __init__(self):
         self.s3_client = boto3.client(
@@ -54,12 +57,15 @@ class S3StorageBackend(StorageBackend):
             content = await file.read()
             key = f"{folder}/{filename}"
             
-            self.s3_client.put_object(
+            loop = asyncio.get_event_loop()
+            func = partial(
+                self.s3_client.put_object,
                 Bucket=self.bucket_name,
                 Key=key,
                 Body=content,
                 ContentType=file.content_type
             )
+            await loop.run_in_executor(None, func)
             
             # Return the S3 URL
             return f"https://{self.bucket_name}.s3.{settings.AWS_REGION}.amazonaws.com/{key}"
@@ -75,7 +81,9 @@ class S3StorageBackend(StorageBackend):
             # Extract key from S3 URL
             if "amazonaws.com/" in file_path:
                 key = file_path.split("amazonaws.com/")[1]
-                self.s3_client.delete_object(Bucket=self.bucket_name, Key=key)
+                loop = asyncio.get_event_loop()
+                func = partial(self.s3_client.delete_object, Bucket=self.bucket_name, Key=key)
+                await loop.run_in_executor(None, func)
         except Exception as e:
             logger.error(f"S3 delete failed: {e}")
 

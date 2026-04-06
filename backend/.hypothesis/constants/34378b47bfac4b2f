@@ -1,0 +1,4 @@
+# file: /Users/sky_walker/Documents/Assesments /Predusk Technology pvt ltd 2/backend/app/workers/celery_app.py
+# hypothesis_version: 6.151.10
+
+[100, 'UTC', 'app.workers.tasks', 'document_processor', 'json']

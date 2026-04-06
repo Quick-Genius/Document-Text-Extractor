@@ -1,0 +1,124 @@
+# Implementation Plan
+
+- [x] 1. Write bug condition exploration test
+  - **Property 1: Bug Condition** - Task Enqueue Failure Leaves Documents PENDING
+  - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
+  - **DO NOT attempt to fix the test or the code when it fails**
+  - **NOTE**: This test encodes the expected behavior - it will validate the fix when it passes after implementation
+  - **GOAL**: Surface counterexamples that demonstrate the bug exists
+  - **Scoped PBT Approach**: For deterministic bugs, scope the property to the concrete failing case(s) to ensure reproducibility
+  - Test implementation details from Bug Condition in design:
+    - Mock `process_document_task.delay()` to raise `redis.ConnectionError` for batch uploads (2+ files)
+    - Upload 3 files and verify transaction commits successfully
+    - Assert that documents are marked as FAILED (not PENDING) with error messages
+    - Assert that job records contain error details and failedAt timestamps
+    - Assert that enqueue failures are logged with document IDs and error details
+  - The test assertions should match the Expected Behavior Properties from design:
+    - Documents should have status "FAILED" when enqueuing fails
+    - Job records should have errorMessage and failedAt fields populated
+    - Logs should contain detailed error information
+  - Run test on UNFIXED code
+  - **EXPECTED OUTCOME**: Test FAILS (this is correct - it proves the bug exists)
+  - Document counterexamples found to understand root cause:
+    - Documents remain at PENDING status when enqueuing fails
+    - No error messages stored in job records
+    - No logging of enqueue failures
+  - Mark task complete when test is written, run, and failure is documented
+  - _Requirements: 1.1, 1.2, 1.4, 2.1, 2.2, 2.4_
+
+- [x] 2. Write preservation property tests (BEFORE implementing fix)
+  - **Property 2: Preservation** - Single File and Successful Batch Upload Behavior
+  - **IMPORTANT**: Follow observation-first methodology
+  - Observe behavior on UNFIXED code for non-buggy inputs:
+    - Single-file uploads (1 file) use non-transactional flow
+    - Successful batch uploads (2+ files, all tasks enqueue) return PENDING documents with valid job IDs
+    - Queue depth validation rejects uploads before database operations
+    - Storage failures roll back transactions
+  - Write property-based tests capturing observed behavior patterns from Preservation Requirements:
+    - Property: For all single-file uploads, status is PENDING and job has valid celeryTaskId
+    - Property: For all successful batch uploads (no enqueue failures), all documents have PENDING status and valid job IDs
+    - Property: For all uploads exceeding queue depth, ValidationError is raised before database operations
+    - Property: For all storage failures, transaction is rolled back and no documents are created
+  - Property-based testing generates many test cases for stronger guarantees:
+    - Generate random file counts (1, 2, 5, 10 files)
+    - Generate random file types (PDF, DOCX, TXT, images)
+    - Generate random file sizes
+    - Verify behavior is identical to unfixed code for all non-enqueue-failure scenarios
+  - Run tests on UNFIXED code
+  - **EXPECTED OUTCOME**: Tests PASS (this confirms baseline behavior to preserve)
+  - Mark task complete when tests are written, run, and passing on unfixed code
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
+
+- [x] 3. Fix for batch upload task enqueuing failures
+
+  - [x] 3.1 Add configuration settings for retry behavior
+    - Add `TASK_ENQUEUE_MAX_RETRIES` setting (default: 3) to `backend/app/core/config.py`
+    - Add `TASK_ENQUEUE_RETRY_DELAY` setting (default: 1 second) to `backend/app/core/config.py`
+    - Document retry configuration in settings class
+    - _Bug_Condition: isBugCondition(input) where input.filesCount >= 2 AND input.transactionCommitted == true AND (input.celeryBrokerAvailable == false OR input.taskEnqueueFailed == true OR input.jobUpdateFailed == true) AND input.documentStatus == "PENDING"_
+    - _Expected_Behavior: Documents marked as FAILED with error details when enqueuing fails after retries_
+    - _Preservation: Single-file uploads and successful batch uploads unchanged_
+    - _Requirements: 2.1, 2.2, 2.4_
+
+  - [x] 3.2 Implement error handling for task enqueuing
+    - Wrap task enqueuing loop (lines 127-140 in `document_service.py`) in try-catch blocks
+    - Catch exceptions from `process_document_task.delay()` (Redis connection errors, Celery broker issues)
+    - Catch exceptions from `db.job.update()` (database timeouts, connection failures)
+    - Implement retry logic with exponential backoff using configured settings
+    - Track successful and failed enqueues in separate lists
+    - Continue processing other documents after a failure (partial success handling)
+    - _Bug_Condition: isBugCondition(input) where task enqueuing or job update fails_
+    - _Expected_Behavior: Failed documents marked as FAILED, successful documents proceed with PENDING status_
+    - _Preservation: Successful enqueues continue to work exactly as before_
+    - _Requirements: 2.1, 2.3, 2.4, 2.5_
+
+  - [x] 3.3 Implement document/job status updates for failures
+    - When enqueuing fails after all retries, update document status to "FAILED" using `db.document.update()`
+    - Update job status to "FAILED" using `db.job.update()`
+    - Store detailed error message in job's `errorMessage` field
+    - Set job's `failedAt` timestamp to current datetime
+    - Handle exceptions during status updates (log errors if update fails)
+    - _Bug_Condition: isBugCondition(input) where enqueuing fails and documents need status updates_
+    - _Expected_Behavior: Documents and jobs marked as FAILED with error details and timestamps_
+    - _Preservation: Successful documents continue to have PENDING status_
+    - _Requirements: 2.1, 2.4_
+
+  - [x] 3.4 Add comprehensive error logging
+    - Log each enqueue attempt with document ID and attempt number
+    - Log enqueue failures with full exception details and stack trace
+    - Log final batch summary with success/failure counts (e.g., "5/10 documents enqueued successfully, 5 failed")
+    - Include Redis/Celery broker connection status in error logs
+    - Use structured logging with appropriate log levels (INFO for success, WARNING for retries, ERROR for failures)
+    - _Bug_Condition: isBugCondition(input) where enqueuing fails and needs logging_
+    - _Expected_Behavior: Detailed error logs for debugging enqueue failures_
+    - _Preservation: Successful enqueues continue to log task ID and document ID_
+    - _Requirements: 2.2, 3.4_
+
+  - [x] 3.5 Verify bug condition exploration test now passes
+    - **Property 1: Expected Behavior** - Task Enqueue Failure Handling
+    - **IMPORTANT**: Re-run the SAME test from task 1 - do NOT write a new test
+    - The test from task 1 encodes the expected behavior
+    - When this test passes, it confirms the expected behavior is satisfied
+    - Run bug condition exploration test from step 1
+    - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
+    - Verify that documents are marked as FAILED when enqueuing fails
+    - Verify that job records contain error messages and failedAt timestamps
+    - Verify that enqueue failures are logged with detailed error information
+    - _Requirements: 2.1, 2.2, 2.4_
+
+  - [x] 3.6 Verify preservation tests still pass
+    - **Property 2: Preservation** - Single File and Successful Batch Upload Behavior
+    - **IMPORTANT**: Re-run the SAME tests from task 2 - do NOT write new tests
+    - Run preservation property tests from step 2
+    - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
+    - Confirm single-file uploads work exactly as before
+    - Confirm successful batch uploads return PENDING documents with valid job IDs
+    - Confirm queue depth validation and storage failures work as before
+    - Confirm all tests still pass after fix (no regressions)
+
+- [x] 4. Checkpoint - Ensure all tests pass
+  - Run all unit tests for document service
+  - Run all property-based tests for preservation checking
+  - Run integration tests with mocked Redis/Celery failures
+  - Verify no regressions in existing functionality
+  - Ensure all tests pass, ask the user if questions arise

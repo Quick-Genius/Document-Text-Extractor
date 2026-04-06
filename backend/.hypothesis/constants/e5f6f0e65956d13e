@@ -1,0 +1,4 @@
+# file: /Users/sky_walker/Documents/Assesments /Predusk Technology pvt ltd 2/backend/app/workers/processors/image_processor.py
+# hypothesis_version: 6.151.10
+
+[2.0, '--psm 6', 'L', 'category', 'height', 'keywords', 'metadata', 'mode', 'summary', 'text', 'title', 'width']
