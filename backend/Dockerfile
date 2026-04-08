@@ -20,4 +20,5 @@ RUN prisma generate
 RUN mkdir -p /app/storage/uploads
 
 # Default: run API server (override for worker)
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+RUN chmod +x /app/start.sh
+CMD ["/app/start.sh"]
