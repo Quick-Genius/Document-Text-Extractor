@@ -15,7 +15,7 @@ export function DashboardPage() {
   const api = useApi();
   const [isExporting, setIsExporting] = useState(false);
   const [stats, setStats] = useState<StatsData | null>(null);
-  const [statsLoading, setStatsLoading] = useState(true);
+  const [_statsLoading, setStatsLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -105,14 +105,14 @@ export function DashboardPage() {
 
         {/* Stat Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          {statCards.map((card, idx) => (
+          {statCards.map((card) => (
             <div key={card.label} className={`relative overflow-hidden rounded-lg p-8 bg-gradient-to-br ${card.gradient} text-white shadow-xl hover:-translate-y-1 transition-transform`}>
               <div className="absolute -right-4 -top-4 w-32 h-32 bg-white/10 rounded-full blur-3xl"></div>
               <div className="flex justify-between items-start mb-6 align-top">
                 <span className="material-symbols-outlined bg-white/20 p-3 rounded-md shadow-sm">{card.icon}</span>
-                {card.change && (
+                {(card as any).change && (
                   <span className={`${card.badgeBg} ${card.badgeText} text-xs font-bold px-2 py-1 rounded-full`}>
-                    {card.change}
+                    {(card as any).change}
                   </span>
                 )}
               </div>

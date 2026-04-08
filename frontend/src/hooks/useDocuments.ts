@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { getDocuments, getDocumentById } from '../services/documentService';
 import { useApi } from './useApi';
 
