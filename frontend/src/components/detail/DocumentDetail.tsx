@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { exportToJson } from '../../services/exportService';
+import { useAuth } from '@clerk/clerk-react';
 
 interface DocumentDetailProps {
   documentId: string;
@@ -18,8 +19,18 @@ export function DocumentDetail({ documentId }: DocumentDetailProps) {
   const navigate = useNavigate();
   const api = useApi();
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
   const { data: document, isLoading, error } = useDocument(documentId);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDownload = async () => {
+    const token = await getToken();
+    const url = `/api/v1/documents/${documentId}/preview?download=true&token=${token}`;
+    const a = window.document.createElement('a');
+    a.href = url;
+    a.download = document?.originalName || 'document';
+    a.click();
+  };
 
   const updateMutation = useMutation({
     mutationFn: (data: any) => updateProcessedData(api, documentId, data),
@@ -135,6 +146,13 @@ export function DocumentDetail({ documentId }: DocumentDetailProps) {
               {retryMutation.isPending ? 'Retrying...' : 'Restart Processing'}
             </button>
           )}
+          <button
+            onClick={handleDownload}
+            className="px-5 py-2.5 rounded-md font-semibold text-sm bg-surface-container-lowest border border-outline-variant/20 hover:bg-surface-container-low transition-all active:scale-95 flex items-center gap-2"
+          >
+            <span className="material-symbols-outlined text-sm">download</span>
+            Download
+          </button>
           <button
             onClick={() => exportToJson(api, documentId)}
             disabled={!isCompleted}

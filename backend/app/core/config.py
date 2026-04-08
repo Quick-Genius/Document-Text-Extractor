@@ -51,13 +51,29 @@ class Settings(BaseSettings):
     REDIS_DB: int = 0
     REDIS_PASSWORD: Optional[str] = None
     
+    # RabbitMQ
+    RABBITMQ_URL: Optional[str] = None
+    RABBITMQ_HOST: str = "localhost"
+    RABBITMQ_PORT: int = 5672
+    RABBITMQ_USER: str = "guest"
+    RABBITMQ_PASSWORD: str = "guest"
+    RABBITMQ_VHOST: str = "/"
+    
     # Celery
     CELERY_BROKER_URL: Optional[str] = None
     CELERY_RESULT_BACKEND: Optional[str] = None
     
     @model_validator(mode='after')
     def assemble_worker_urls(self) -> 'Settings':
-        # Use REDIS_URL if provided, otherwise construct from individual components
+        # Construct RabbitMQ URL if not provided
+        rabbitmq_url = self.RABBITMQ_URL
+        if not rabbitmq_url:
+            rabbitmq_url = (
+                f"amqp://{self.RABBITMQ_USER}:{self.RABBITMQ_PASSWORD}"
+                f"@{self.RABBITMQ_HOST}:{self.RABBITMQ_PORT}/{self.RABBITMQ_VHOST}"
+            )
+        
+        # Construct Redis URL if not provided
         redis_base_url = self.REDIS_URL
         if not redis_base_url:
             if self.REDIS_PASSWORD:
@@ -65,8 +81,9 @@ class Settings(BaseSettings):
             else:
                 redis_base_url = f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
         
+        # Set CELERY_BROKER_URL to RabbitMQ and CELERY_RESULT_BACKEND to Redis
         if not self.CELERY_BROKER_URL:
-            self.CELERY_BROKER_URL = redis_base_url
+            self.CELERY_BROKER_URL = rabbitmq_url
         if not self.CELERY_RESULT_BACKEND:
             self.CELERY_RESULT_BACKEND = redis_base_url
         
@@ -112,6 +129,48 @@ class Settings(BaseSettings):
     # Task Enqueue Retry Configuration (for batch upload task enqueue fix)
     TASK_ENQUEUE_MAX_RETRIES: int = 3  # Number of retry attempts for task enqueuing
     TASK_ENQUEUE_RETRY_DELAY: int = 1  # Delay between retry attempts in seconds (exponential backoff applied)
+    
+    # Scheduler Configuration (for automatic task scheduler)
+    SCHEDULER_HEALTH_CHECK_INTERVAL: int = 20  # Seconds between health checks
+    SCHEDULER_MAX_CONCURRENCY: int = 4  # Maximum concurrent processing tasks
+    SCHEDULER_STUCK_THRESHOLD: int = 300  # Seconds before document considered stuck (5 minutes)
+    SCHEDULER_QUEUE_WARNING: int = 20  # Queue depth warning threshold
+    SCHEDULER_QUEUE_ERROR: int = 50  # Queue depth error threshold
+    
+    @field_validator("SCHEDULER_HEALTH_CHECK_INTERVAL")
+    @classmethod
+    def validate_health_check_interval(cls, v: int) -> int:
+        if v < 5 or v > 300:
+            raise ValueError("SCHEDULER_HEALTH_CHECK_INTERVAL must be between 5 and 300 seconds")
+        return v
+    
+    @field_validator("SCHEDULER_MAX_CONCURRENCY")
+    @classmethod
+    def validate_max_concurrency(cls, v: int) -> int:
+        if v < 1 or v > 20:
+            raise ValueError("SCHEDULER_MAX_CONCURRENCY must be between 1 and 20")
+        return v
+    
+    @field_validator("SCHEDULER_STUCK_THRESHOLD")
+    @classmethod
+    def validate_stuck_threshold(cls, v: int) -> int:
+        if v < 60:
+            raise ValueError("SCHEDULER_STUCK_THRESHOLD must be at least 60 seconds")
+        return v
+    
+    @field_validator("SCHEDULER_QUEUE_WARNING")
+    @classmethod
+    def validate_queue_warning(cls, v: int) -> int:
+        if v < 1:
+            raise ValueError("SCHEDULER_QUEUE_WARNING must be at least 1")
+        return v
+    
+    @field_validator("SCHEDULER_QUEUE_ERROR")
+    @classmethod
+    def validate_queue_error(cls, v: int) -> int:
+        if v < 1:
+            raise ValueError("SCHEDULER_QUEUE_ERROR must be at least 1")
+        return v
     
     model_config = SettingsConfigDict(
         env_file=".env",

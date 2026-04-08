@@ -1,0 +1,14 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.hypothesis/
+.env
+storage/
+exports/
+test_uploads/
+samples/
+tests/
+*.md
+.DS_Store

@@ -79,6 +79,14 @@ class RedisClient:
             await self.connect()
         return await self.redis.expire(key, time)
 
+    async def delete(self, *keys):
+        """Delete one or more keys from Redis"""
+        if not self.redis:
+            await self.connect()
+        if keys:
+            return await self.redis.delete(*keys)
+        return 0
+
 
 class TaskRedisClient:
     """
@@ -113,6 +121,12 @@ class TaskRedisClient:
 
     async def expire(self, key, time):
         return await self.redis.expire(key, time)
+
+    async def delete(self, *keys):
+        """Delete one or more keys from Redis"""
+        if keys:
+            return await self.redis.delete(*keys)
+        return 0
 
     async def close(self):
         if self.redis:

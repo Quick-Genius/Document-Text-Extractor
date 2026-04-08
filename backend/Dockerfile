@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-# System deps for pytesseract + pdf2image
+# System deps for OCR + PDF processing
 RUN apt-get update && apt-get install -y --no-install-recommends \
     tesseract-ocr \
     poppler-utils \
@@ -17,7 +17,7 @@ COPY . .
 # Generate Prisma client
 RUN prisma generate
 
-# Ensure storage directory exists
 RUN mkdir -p /app/storage/uploads
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Default: run API server (override for worker)
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]

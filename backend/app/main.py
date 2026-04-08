@@ -8,9 +8,12 @@ from contextlib import asynccontextmanager
 import os
 
 from app.core.config import settings
-from app.api.v1 import documents, jobs, export, websocket
+from app.api.v1 import documents, jobs, export, websocket, health
 from app.utils.redis_client import redis_client
 from app.core.websocket_manager import websocket_manager
+from app.services.task_scheduler import TaskScheduler
+from app.utils.db_pool import get_prisma_with_pool
+from app.workers.celery_app import celery_app
 
 import boto3
 from botocore.exceptions import ClientError, BotoCoreError
@@ -79,6 +82,53 @@ async def check_aws_s3() -> bool:
         return False
 
 
+async def _shutdown_cleanup(db):
+    """
+    On shutdown: mark all PROCESSING/QUEUED documents as FAILED
+    and purge the Celery queue so nothing is left dangling.
+    """
+    try:
+        from datetime import datetime
+
+        # Find all in-flight documents
+        stuck = await db.document.find_many(
+            where={"status": {"in": ["PROCESSING", "QUEUED"]}},
+            include={"job": True}
+        )
+
+        if stuck:
+            logger.info(f"Shutdown cleanup: marking {len(stuck)} in-flight documents as FAILED")
+            for doc in stuck:
+                try:
+                    await db.document.update(
+                        where={"id": doc.id},
+                        data={"status": "FAILED"}
+                    )
+                    if doc.job:
+                        await db.job.update(
+                            where={"id": doc.job.id},
+                            data={
+                                "status": "FAILED",
+                                "failedAt": datetime.now(),
+                                "errorMessage": "Backend instance stopped"
+                            }
+                        )
+                except Exception as e:
+                    logger.warning(f"Failed to mark document {doc.id} as FAILED: {e}")
+        else:
+            logger.info("Shutdown cleanup: no in-flight documents found")
+
+        # Purge the Celery queue so stale tasks don't run when the worker restarts
+        try:
+            celery_app.control.purge()
+            logger.info("Shutdown cleanup: Celery queue purged")
+        except Exception as e:
+            logger.warning(f"Failed to purge Celery queue: {e}")
+
+    except Exception as e:
+        logger.error(f"Shutdown cleanup failed: {e}", exc_info=True)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan events"""
@@ -103,10 +153,31 @@ async def lifespan(app: FastAPI):
 
     await redis_client.connect()
     await websocket_manager.start()   # ← start Redis pub/sub listener
+    
+    # Initialize and start task scheduler
+    db = get_prisma_with_pool()
+    await db.connect()
+    
+    scheduler = TaskScheduler(
+        db=db,
+        celery_app=celery_app,
+        health_check_interval=settings.SCHEDULER_HEALTH_CHECK_INTERVAL,
+        max_concurrency=settings.SCHEDULER_MAX_CONCURRENCY
+    )
+    await scheduler.start()
+    logger.info("Task scheduler started")
+    
+    # Store scheduler in app state for access by services
+    app.state.scheduler = scheduler
+    
     yield
 
-    # Shutdown
+    # Shutdown — mark in-flight documents as failed and clear the queue
     logger.info("Shutting down application...")
+    await _shutdown_cleanup(db)
+    await scheduler.stop()
+    logger.info("Task scheduler stopped")
+    await db.disconnect()
     await websocket_manager.stop()
     await redis_client.disconnect()
 
@@ -151,6 +222,7 @@ app.include_router(documents.router, prefix="/api/v1", tags=["documents"])
 app.include_router(jobs.router, prefix="/api/v1", tags=["jobs"])
 app.include_router(export.router, prefix="/api/v1", tags=["export"])
 app.include_router(websocket.router, prefix="/api/v1", tags=["websocket"])
+app.include_router(health.router, prefix="/api/v1", tags=["health"])
 
 # Health check
 @app.get("/health")

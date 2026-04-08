@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status as http_status, Form
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status as http_status, Form, Request
 from pydantic import BaseModel
 from typing import List, Optional
 from app.core.auth import get_current_user_id
@@ -11,6 +11,11 @@ import os
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
+def get_document_service(request: Request) -> DocumentService:
+    """Dependency to get DocumentService with scheduler"""
+    scheduler = getattr(request.app.state, 'scheduler', None)
+    return DocumentService(scheduler=scheduler)
+
 class DashboardStats(BaseModel):
     active_jobs: int
     storage_used_mb: float
@@ -20,7 +25,8 @@ class DashboardStats(BaseModel):
 async def upload_documents(
     files: List[UploadFile] = File(...),
     category: Optional[str] = Form(None),
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user_id),
+    document_service: DocumentService = Depends(get_document_service)
 ):
     """
     Upload one or more documents for processing
@@ -61,7 +67,6 @@ async def upload_documents(
                 raise ValidationError(f"File type {file.content_type} not supported")
         
         # Process uploads
-        document_service = DocumentService()
         documents = await document_service.create_documents_from_upload(
             user_id=user_id,
             files=files,
@@ -100,7 +105,8 @@ async def list_documents(
     order: str = "desc",
     page: int = 1,
     limit: int = 20,
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user_id),
+    document_service: DocumentService = Depends(get_document_service)
 ):
     """
     List user's documents with filtering and pagination
@@ -115,7 +121,6 @@ async def list_documents(
             limit=limit
         )
         
-        document_service = DocumentService()
         result = await document_service.list_documents(user_id, filters)
         
         return result
@@ -126,14 +131,13 @@ async def list_documents(
 
 @router.get("/documents/stats/dashboard", response_model=DashboardStats)
 async def get_dashboard_stats(
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user_id),
+    document_service: DocumentService = Depends(get_document_service)
 ):
     """
     Get dashboard statistics: active jobs, storage used, and success rate
     """
     try:
-        document_service = DocumentService()
-        
         # Get all user documents
         filters = DocumentFilters(
             status=None,
@@ -171,13 +175,13 @@ async def get_dashboard_stats(
 @router.get("/documents/{document_id}", response_model=DocumentResponse)
 async def get_document(
     document_id: str,
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user_id),
+    document_service: DocumentService = Depends(get_document_service)
 ):
     """
     Get document details including processed data
     """
     try:
-        document_service = DocumentService()
         document = await document_service.get_document_by_id(document_id, user_id)
         
         if not document:
@@ -195,13 +199,13 @@ async def get_document(
 async def delete_document(
     document_id: str,
     permanent: bool = False,
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user_id),
+    document_service: DocumentService = Depends(get_document_service)
 ):
     """
     Delete a document and its associated data
     """
     try:
-        document_service = DocumentService()
         await document_service.delete_document(document_id, user_id, permanent)
         
     except HTTPException:
@@ -214,13 +218,13 @@ async def delete_document(
 async def update_processed_data(
     document_id: str,
     data: dict,
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user_id),
+    document_service: DocumentService = Depends(get_document_service)
 ):
     """
     Update processed data for a document
     """
     try:
-        document_service = DocumentService()
         updated = await document_service.update_processed_data(document_id, user_id, data)
         
         return updated
@@ -234,13 +238,13 @@ async def update_processed_data(
 @router.post("/documents/{document_id}/finalize")
 async def finalize_document(
     document_id: str,
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user_id),
+    document_service: DocumentService = Depends(get_document_service)
 ):
     """
     Finalize a document (locks it from further edits)
     """
     try:
-        document_service = DocumentService()
         finalized = await document_service.finalize_document(document_id, user_id)
         
         return finalized
@@ -259,13 +263,13 @@ class ProcessBatchRequest(BaseModel):
 @router.post("/documents/{document_id}/process")
 async def process_document(
     document_id: str,
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user_id),
+    document_service: DocumentService = Depends(get_document_service)
 ):
     """
     Trigger AI processing on a single uploaded document
     """
     try:
-        document_service = DocumentService()
         result = await document_service.process_document(document_id, user_id)
         
         return result
@@ -280,7 +284,8 @@ async def process_document(
 @router.post("/documents/process-batch")
 async def process_documents_batch(
     request: ProcessBatchRequest,
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user_id),
+    document_service: DocumentService = Depends(get_document_service)
 ):
     """
     Trigger AI processing on multiple uploaded documents
@@ -292,7 +297,6 @@ async def process_documents_batch(
         if len(request.document_ids) > 10:
             raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail="Maximum 10 documents per batch")
         
-        document_service = DocumentService()
         results = await document_service.process_documents_batch(request.document_ids, user_id)
         
         return {"documents": results, "processed": len(results)}
@@ -307,13 +311,13 @@ async def process_documents_batch(
 @router.post("/documents/{document_id}/cancel")
 async def cancel_document(
     document_id: str,
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user_id),
+    document_service: DocumentService = Depends(get_document_service)
 ):
     """
     Cancel a document that is currently processing or queued
     """
     try:
-        document_service = DocumentService()
         result = await document_service.cancel_document(document_id, user_id)
         
         return {
@@ -334,7 +338,8 @@ async def cancel_document(
 @router.post("/documents/{document_id}/retry")
 async def retry_document(
     document_id: str,
-    user_id: str = Depends(get_current_user_id)
+    user_id: str = Depends(get_current_user_id),
+    document_service: DocumentService = Depends(get_document_service)
 ):
     """
     Retry processing for a document
@@ -345,7 +350,6 @@ async def retry_document(
     - COMPLETED documents (reprocesses from scratch)
     """
     try:
-        document_service = DocumentService()
         result = await document_service.retry_document(document_id, user_id)
         
         return {
@@ -368,6 +372,7 @@ async def retry_document(
 async def preview_document(
     document_id: str,
     token: Optional[str] = None,
+    download: bool = False,
     user_id: str = Depends(get_current_user_id)
 ):
     """
@@ -420,12 +425,13 @@ async def preview_document(
                 
                 # Determine media type
                 media_type = document.fileType or "application/octet-stream"
+                disposition = f"attachment; filename=\"{document.originalName}\"" if download else f"inline; filename=\"{document.originalName}\""
                 
                 return StreamingResponse(
                     stream_s3_file(),
                     media_type=media_type,
                     headers={
-                        "Content-Disposition": f"inline; filename={document.originalName}",
+                        "Content-Disposition": disposition,
                         "Cache-Control": "public, max-age=3600",
                         "Access-Control-Allow-Origin": "*",
                         "Access-Control-Allow-Methods": "GET, OPTIONS",
@@ -444,15 +450,14 @@ async def preview_document(
             # Determine media type
             media_type = document.fileType or "application/octet-stream"
             logger.info(f"Serving file: {file_path}, media_type: {media_type}")
-            
-            # Return file with appropriate headers for preview
+            disposition = f"attachment; filename=\"{document.originalName}\"" if download else f"inline; filename=\"{document.originalName}\""
+
+            # Return file with appropriate headers for preview or download
             return FileResponse(
                 path=file_path,
                 media_type=media_type,
                 filename=document.originalName,
-                headers={
-                    "Content-Disposition": f"inline; filename={document.originalName}"
-                }
+                headers={"Content-Disposition": disposition}
             )
         finally:
             await db.disconnect()

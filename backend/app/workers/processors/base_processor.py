@@ -155,6 +155,7 @@ class BaseProcessor(ABC):
         Lightweight extractive summarisation:
         1. Score each sentence by TF of its words vs the whole document
         2. Pick top-N sentences in original order
+        3. Format with proper spacing and punctuation
         """
         # Sentence tokenisation (handles Mr./Dr./etc. reasonably)
         sentences = re.split(r'(?<=[.!?])\s+(?=[A-Z])', text)
@@ -165,31 +166,46 @@ class BaseProcessor(ABC):
 
         # If GROQ summarization is configured, prefer it
         groq_key = os.getenv('GROQ_API_KEY')
-        groq_url = os.getenv('GROQ_API_URL', 'https://api.groq.com/v1/summarize')
         if groq_key:
             try:
+                content = text[:4000].strip()
+                if not content:
+                    raise ValueError("Empty content, skipping Groq")
+
                 resp = httpx.post(
-                    groq_url,
+                    'https://api.groq.com/openai/v1/chat/completions',
                     headers={
                         'Authorization': f'Bearer {groq_key}',
                         'Content-Type': 'application/json',
                     },
                     json={
-                        'text': text,
-                        'max_sentences': max_sentences,
-                        'max_chars': max_chars,
+                        'model': 'llama-3.1-8b-instant',
+                        'messages': [
+                            {
+                                'role': 'system',
+                                'content': f'Summarize the following text in {max_sentences} sentences or fewer. Be concise and factual. Return only the summary, no preamble.'
+                            },
+                            {
+                                'role': 'user',
+                                'content': content
+                            }
+                        ],
+                        'max_tokens': 300,
+                        'temperature': 0.3,
                     },
                     timeout=30,
                 )
                 resp.raise_for_status()
                 j = resp.json()
-                if 'summary' in j and isinstance(j['summary'], str):
-                    return j['summary'][:max_chars] + ('...' if len(j['summary']) > max_chars else '')
+                summary = j.get('choices', [{}])[0].get('message', {}).get('content', '').strip()
+                if summary:
+                    formatted_summary = self._format_summary(summary)
+                    return formatted_summary[:max_chars] + ('...' if len(formatted_summary) > max_chars else '')
             except Exception as e:
                 logger.warning(f'GROQ summarizer failed, falling back to local summary: {e}')
 
         if len(sentences) <= max_sentences:
-            summary = ' '.join(sentences)
+            summary = self._format_summary(' '.join(sentences))
             return summary[:max_chars] + ('...' if len(summary) > max_chars else '')
 
         # Word frequencies across full text
@@ -211,12 +227,41 @@ class BaseProcessor(ABC):
 
         scored = sorted(enumerate(sentences), key=lambda x: -score_sentence(x[1]))
         top_indices = sorted(i for i, _ in scored[:max_sentences])
-        summary = ' '.join(sentences[i] for i in top_indices)
+        selected_sentences = [sentences[i] for i in top_indices]
+        
+        # Format summary with proper spacing
+        summary = self._format_summary(' '.join(selected_sentences))
 
         if len(summary) > max_chars:
             summary = summary[:max_chars].rsplit(' ', 1)[0] + '...'
 
         return summary
+    
+    def _format_summary(self, text: str) -> str:
+        """
+        Format summary text with proper spacing and punctuation.
+        
+        - Ensures proper spacing after punctuation
+        - Removes excessive whitespace
+        - Ensures sentences end with proper punctuation
+        """
+        # Remove excessive whitespace
+        text = re.sub(r'\s+', ' ', text).strip()
+        
+        # Ensure space after sentence-ending punctuation
+        text = re.sub(r'([.!?])([A-Z])', r'\1 \2', text)
+        
+        # Ensure space after commas (if missing)
+        text = re.sub(r',([^\s])', r', \1', text)
+        
+        # Remove space before punctuation
+        text = re.sub(r'\s+([.,!?;:])', r'\1', text)
+        
+        # Ensure text ends with proper punctuation
+        if text and text[-1] not in '.!?':
+            text += '.'
+        
+        return text
 
     # ------------------------------------------------------------------
     # Keyword extraction  (TF-IDF approximation, no corpus needed)
