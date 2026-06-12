@@ -25,7 +25,7 @@ export function StatusFilter({ onChange }: StatusFilterProps) {
 
   return (
     <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 no-scrollbar">
-      <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-500 uppercase">
+      <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-900/60 border border-slate-800 rounded-lg text-xs font-bold text-slate-400 uppercase">
         <Filter className="w-3.5 h-3.5" /> Filter
       </div>
       {STATUS_OPTIONS.map((opt) => (
@@ -35,8 +35,8 @@ export function StatusFilter({ onChange }: StatusFilterProps) {
           type="button"
           className={`whitespace-nowrap px-4 py-1.5 rounded-lg text-sm font-semibold transition-all border
             ${selected.includes(opt.value)
-              ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-100'
-              : 'bg-white border-gray-200 text-gray-600 hover:border-blue-400 hover:bg-blue-50/10'}`}
+              ? 'bg-indigo-600 border-indigo-600 text-white shadow-md shadow-indigo-500/10'
+              : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:border-indigo-500/30 hover:bg-indigo-500/5'}`}
         >
           {opt.label}
         </button>

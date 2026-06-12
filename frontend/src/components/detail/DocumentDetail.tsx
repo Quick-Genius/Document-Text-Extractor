@@ -90,10 +90,10 @@ export function DocumentDetail({ documentId }: DocumentDetailProps) {
   const isFinalized = document.processedData?.isFinalized;
 
   const iconColorMap: Record<string, string> = {
-    'QUEUED': 'bg-slate-100 text-slate-500',
-    'PROCESSING': 'bg-blue-100 text-blue-600',
-    'COMPLETED': 'bg-primary-fixed text-primary',
-    'FAILED': 'bg-error-container text-error',
+    'QUEUED': 'bg-slate-900/60 text-slate-400 border border-slate-800',
+    'PROCESSING': 'bg-blue-950/50 text-blue-400 border border-blue-900/30',
+    'COMPLETED': 'bg-indigo-950/50 text-indigo-400 border border-indigo-905/30',
+    'FAILED': 'bg-rose-950/50 text-rose-400 border border-rose-900/30',
   };
   const iconMap: Record<string, string> = {
     'QUEUED': 'pending',
@@ -225,14 +225,14 @@ export function DocumentDetail({ documentId }: DocumentDetailProps) {
             <div className="space-y-4">
               <div className="space-y-1">
                 <p className="text-[10px] font-bold text-on-surface-variant tracking-widest uppercase">Document ID</p>
-                <p className="font-mono text-xs bg-white p-2 rounded border border-outline-variant/10 text-primary truncate" title={documentId}>{documentId}</p>
+                <p className="font-mono text-xs bg-slate-950 p-2.5 rounded-lg border border-slate-900 text-indigo-400 truncate" title={documentId}>{documentId}</p>
               </div>
               <div className="space-y-1">
                 <p className="text-[10px] font-bold text-on-surface-variant tracking-widest uppercase">Status</p>
                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-tight uppercase 
-                  ${isCompleted ? 'bg-emerald-100 text-emerald-700' : 
-                    document.status === 'FAILED' ? 'bg-error-container text-error' : 
-                    document.status === 'QUEUED' ? 'bg-slate-100 text-slate-600' : 'bg-primary-fixed text-primary'}`}>
+                  ${isCompleted ? 'bg-emerald-950/50 text-emerald-400 border border-emerald-900/30' : 
+                    document.status === 'FAILED' ? 'bg-rose-950/50 text-rose-400 border border-rose-900/30' : 
+                    document.status === 'QUEUED' ? 'bg-slate-900/60 text-slate-400 border border-slate-800' : 'bg-blue-950/50 text-blue-400 border border-blue-900/30'}`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${dotMap[document.status] || dotMap.QUEUED}`}></span>
                   {document.status}
                 </span>

@@ -4,6 +4,7 @@ import { UploadPage } from './pages/UploadPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { DocumentDetailPage } from './pages/DocumentDetailPage';
 import { motion } from 'framer-motion';
+import { InteractiveShowcase } from './components/landing/InteractiveShowcase';
 
 function NavLink({ to, children }: { to: string; children: string }) {
   const location = useLocation();
@@ -25,94 +26,128 @@ function LandingHero() {
   return (
     <>
       <main className="relative">
+        {/* Dynamic mesh gradients for background depth */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10 overflow-hidden pointer-events-none">
-          <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-indigo-200/30 blur-[120px]"></div>
-          <div className="absolute top-[20%] right-[-5%] w-[400px] h-[400px] rounded-full bg-violet-200/30 blur-[100px]"></div>
-          <div className="absolute bottom-[10%] left-[20%] w-[600px] h-[600px] rounded-full bg-blue-100/20 blur-[150px]"></div>
+          <div className="absolute top-[-5%] left-[-15%] w-[600px] h-[600px] rounded-full bg-indigo-500/15 blur-[120px] dark:bg-indigo-500/10"></div>
+          <div className="absolute top-[15%] right-[-10%] w-[500px] h-[500px] rounded-full bg-purple-500/15 blur-[100px] dark:bg-purple-500/10"></div>
+          <div className="absolute bottom-[20%] left-[10%] w-[700px] h-[700px] rounded-full bg-blue-500/10 blur-[150px] dark:bg-blue-500/5"></div>
         </div>
 
-        <section className="min-h-[870px] flex flex-col items-center justify-center text-center px-6 pt-20 pb-12">
+        <section className="min-h-[850px] flex flex-col items-center justify-center text-center px-6 pt-32 pb-12">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
             className="flex flex-col items-center"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-fixed/50 text-on-primary-fixed-variant text-sm font-bold tracking-wide mb-8 border border-primary/10">
-              <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
-              ⚡ AI-Powered Document Intelligence
+            {/* Tech Pill Badge */}
+            <div className="inline-flex items-center gap-2.5 px-4.5 py-2 rounded-full bg-slate-900/5 dark:bg-white/5 backdrop-blur-md border border-slate-200/40 dark:border-white/10 shadow-sm text-indigo-600 dark:text-indigo-400 text-xs font-bold uppercase tracking-widest mb-8 hover:bg-slate-900/10 dark:hover:bg-white/10 transition-colors">
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+              </span>
+              AI-Powered Document Intelligence
             </div>
 
-            <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-[-0.04em] text-on-surface leading-[1.1] mb-6 max-w-5xl">
+            {/* Title */}
+            <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-[-0.04em] text-slate-900 dark:text-white leading-[1.05] mb-6 max-w-5xl">
               Transform Documents <br/>
-              <span className="signature-text-gradient">Into Insights</span>
+              <span className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+                Into Actionable Insights
+              </span>
             </h1>
 
-            <p className="text-xl md:text-2xl text-on-surface-variant max-w-2xl mx-auto mb-12 font-medium leading-relaxed">
-              Upload any document. Our intelligent pipeline extracts, categorizes, and structures your data — with real-time progress tracking.
+            {/* Subtitle */}
+            <p className="text-lg md:text-xl text-slate-500 dark:text-slate-400 max-w-2xl mx-auto mb-10 font-medium leading-relaxed font-sans">
+              Ingest any PDF, DOCX, or image. Our intelligent extraction pipeline parses text, classifies document types, and structures data in real-time.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
-              <Link to="/sign-in" className="px-10 py-5 text-xl font-bold text-white signature-gradient rounded-[2rem] shadow-2xl shadow-indigo-500/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3">
+            {/* CTAs */}
+            <div className="flex flex-col sm:flex-row gap-4 items-center justify-center mb-16">
+              <Link
+                to="/sign-in"
+                className="px-8 py-4 text-base font-bold text-white signature-gradient rounded-full shadow-lg shadow-indigo-500/20 hover:shadow-[0_0_35px_rgba(79,70,229,0.35)] hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-2"
+              >
                 Get Started Free
-                <span className="material-symbols-outlined">arrow_forward</span>
+                <span className="material-symbols-outlined text-lg">arrow_forward</span>
               </Link>
+              <button
+                onClick={() => {
+                  document.getElementById('showcase-section')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="px-8 py-4 text-base font-bold text-slate-700 dark:text-slate-200 bg-white/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800/80 active:scale-95 transition-all flex items-center gap-2"
+              >
+                Explore Live Demo
+                <span className="material-symbols-outlined text-lg">play_circle</span>
+              </button>
             </div>
           </motion.div>
 
-          <div className="mt-20 w-full max-w-6xl mx-auto px-4">
-            <motion.div 
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.8 }}
-              className="glass-card rounded-lg p-4 shadow-2xl relative overflow-hidden"
+          {/* Interactive Showcase Container (Replaces old static image) */}
+          <div id="showcase-section" className="w-full max-w-6xl mx-auto px-4 scroll-mt-28">
+            <motion.div
+              initial={{ opacity: 0, y: 45 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-100px" }}
+              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
             >
-              <img alt="DocFlow Dashboard Preview" className="rounded-md w-full object-cover aspect-[16/8] shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBGHpYqsKorImjTm6S8NLmnlg30tFpedo59Xz6OgwVZU_uWTm97L9nLsQ375Fk4PBkzlo3kWh-_WgxEOUakS6xzJc6JEUexlmKTIGZZw58GEiKnsDK1YdQGecod6awDjEa59egftgbFg5l8Vo-S9cEyCMzFXnTyoS7ykcDrjAoB-7rNivTglUEDli3GaESuZQMDlFiiK4pOzHvCbfVYLsvu-F_tXzCnlLhlL3MUpz7VXx-e_qClRaav7RdOAq19HZ1zuc_n6RdGCg"/>
+              <InteractiveShowcase />
             </motion.div>
           </div>
         </section>
 
-        <section className="max-w-7xl mx-auto px-8 py-24">
+        {/* Bento Grid Feature Section */}
+        <section className="max-w-7xl mx-auto px-6 py-28 border-t border-slate-250/10 dark:border-slate-850">
+          <div className="text-center mb-16">
+            <span className="text-xs font-bold text-indigo-500 uppercase tracking-widest">Platform Capabilities</span>
+            <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white mt-2 tracking-tight">
+              Engineered for Modern Teams
+            </h2>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="glass-card rounded-lg p-10 flex flex-col items-start hover:bg-white/90 transition-all group border-transparent hover:border-indigo-100">
-              <div className="w-14 h-14 rounded-2xl bg-indigo-50 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
-                <span className="material-symbols-outlined text-indigo-600 text-3xl">description</span>
+            <div className="glass-card rounded-2xl p-8 flex flex-col items-start hover:-translate-y-1 transition-all duration-300 group border-slate-200/20 dark:border-slate-850 hover:border-indigo-500/30 hover:shadow-2xl hover:shadow-indigo-500/5">
+              <div className="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-8 group-hover:scale-110 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-300">
+                <span className="material-symbols-outlined text-2xl">psychology</span>
               </div>
-              <h3 className="text-2xl font-bold mb-4 text-on-surface">Smart Extraction</h3>
-              <p className="text-on-surface-variant leading-relaxed font-medium">
-                Automatically identify and extract key fields from invoices, contracts, and IDs with 99% accuracy using our neural engine.
+              <h3 className="text-xl font-bold mb-3 text-slate-900 dark:text-white">Smart OCR Extraction</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+                Automatically extract metadata, tables, invoices, contracts, and dates using our high-fidelity layout-aware neural parsing engine.
               </p>
             </div>
-            <div className="glass-card rounded-lg p-10 flex flex-col items-start hover:bg-white/90 transition-all group border-transparent hover:border-violet-100">
-              <div className="w-14 h-14 rounded-2xl bg-violet-50 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
-                <span className="material-symbols-outlined text-violet-600 text-3xl">bolt</span>
+
+            <div className="glass-card rounded-2xl p-8 flex flex-col items-start hover:-translate-y-1 transition-all duration-300 group border-slate-200/20 dark:border-slate-850 hover:border-violet-500/30 hover:shadow-2xl hover:shadow-violet-500/5">
+              <div className="w-12 h-12 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 flex items-center justify-center mb-8 group-hover:scale-110 group-hover:bg-violet-500 group-hover:text-white transition-all duration-300">
+                <span className="material-symbols-outlined text-2xl">bolt</span>
               </div>
-              <h3 className="text-2xl font-bold mb-4 text-on-surface">Real-time Tracking</h3>
-              <p className="text-on-surface-variant leading-relaxed font-medium">
-                Watch as your documents move through our pipeline. Every step of extraction and validation is visible instantly.
+              <h3 className="text-xl font-bold mb-3 text-slate-900 dark:text-white">Real-Time Sync</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+                Monitor files processing inside Celery workers. Watch OCR, categorization, and validation stages happen in real-time.
               </p>
             </div>
-            <div className="glass-card rounded-lg p-10 flex flex-col items-start hover:bg-white/90 transition-all group border-transparent hover:border-blue-100">
-              <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
-                <span className="material-symbols-outlined text-blue-600 text-3xl">shield</span>
+
+            <div className="glass-card rounded-2xl p-8 flex flex-col items-start hover:-translate-y-1 transition-all duration-300 group border-slate-200/20 dark:border-slate-850 hover:border-emerald-500/30 hover:shadow-2xl hover:shadow-emerald-500/5">
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-8 group-hover:scale-110 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-300">
+                <span className="material-symbols-outlined text-2xl">shield</span>
               </div>
-              <h3 className="text-2xl font-bold mb-4 text-on-surface">Secure Pipeline</h3>
-              <p className="text-on-surface-variant leading-relaxed font-medium">
-                Enterprise-grade encryption for all data at rest and in transit. Your sensitive documents are processed in isolated enclaves.
+              <h3 className="text-xl font-bold mb-3 text-slate-900 dark:text-white">Secure Sandbox</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+                Documents are processed in isolated worker enclaves. 256-bit encryption secures all documents in transit and storage bucket environments.
               </p>
             </div>
           </div>
         </section>
 
-        <section className="py-12 border-y border-slate-200/10">
+        {/* Logo Cloud Section */}
+        <section className="py-16 border-y border-slate-200/10 bg-slate-50/50 dark:bg-slate-950/20">
           <div className="max-w-7xl mx-auto px-8 flex flex-col items-center">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400 mb-8">Trusted by Global Teams</p>
             <div className="flex flex-wrap justify-center gap-12 opacity-40 grayscale contrast-125">
-              <span className="text-2xl font-black">VELOCITY</span>
-              <span className="text-2xl font-black">NEXUS</span>
-              <span className="text-2xl font-black">QUANTUM</span>
-              <span className="text-2xl font-black">ORBIT</span>
-              <span className="text-2xl font-black">PRISM</span>
+              <span className="text-2xl font-black text-slate-700 dark:text-slate-350 tracking-tighter">VELOCITY</span>
+              <span className="text-2xl font-black text-slate-700 dark:text-slate-350 tracking-tighter">NEXUS</span>
+              <span className="text-2xl font-black text-slate-700 dark:text-slate-350 tracking-tighter">QUANTUM</span>
+              <span className="text-2xl font-black text-slate-700 dark:text-slate-350 tracking-tighter">ORBIT</span>
+              <span className="text-2xl font-black text-slate-700 dark:text-slate-350 tracking-tighter">PRISM</span>
             </div>
           </div>
         </section>
@@ -145,12 +180,12 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen bg-background font-body text-on-surface selection:bg-primary-fixed selection:text-primary overflow-x-hidden">
-        <header className="fixed top-0 w-full z-50 sticky bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl shadow-[0_20px_50px_-12px_rgba(79,70,229,0.08)]">
+        <header className="fixed top-0 w-full z-50 bg-white/70 dark:bg-slate-950/70 backdrop-blur-md border-b border-slate-200/10 shadow-sm">
           <div className="flex justify-between items-center px-8 py-4 max-w-7xl mx-auto">
             <div className="flex items-center gap-8">
               <Link to="/" className="flex items-center gap-2 text-2xl font-extrabold tracking-tighter bg-gradient-to-br from-indigo-600 to-violet-600 bg-clip-text text-transparent">
-                <div className="w-10 h-10 rounded-xl signature-gradient flex items-center justify-center text-white shadow-lg shadow-indigo-200/50">
-                  <span className="material-symbols-outlined">description</span>
+                <div className="w-9 h-9 rounded-xl signature-gradient flex items-center justify-center text-white shadow-lg shadow-indigo-500/25">
+                  <span className="material-symbols-outlined text-[20px]">description</span>
                 </div>
                 DocFlow
               </Link>
@@ -180,8 +215,8 @@ function App() {
                 </div>
               </SignedIn>
               <SignedOut>
-                <Link to="/sign-in" className="px-5 py-2 text-slate-600 font-semibold hover:bg-slate-100/50 rounded-xl transition-all active:scale-95">Sign In</Link>
-                <Link to="/sign-up" className="px-6 py-2.5 signature-gradient text-white font-bold rounded-xl shadow-lg shadow-indigo-200/50 hover:opacity-90 active:scale-95 transition-all">Sign Up</Link>
+                <Link to="/sign-in" className="px-5 py-2 text-slate-650 dark:text-slate-350 font-semibold hover:bg-slate-100/50 dark:hover:bg-slate-800/30 rounded-xl transition-all active:scale-95">Sign In</Link>
+                <Link to="/sign-up" className="px-6 py-2.5 signature-gradient text-white font-bold rounded-xl shadow-md shadow-indigo-500/15 hover:shadow-indigo-500/25 hover:opacity-95 active:scale-[0.98] transition-all">Sign Up</Link>
               </SignedOut>
             </div>
           </div>

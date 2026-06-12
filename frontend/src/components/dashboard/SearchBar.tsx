@@ -18,11 +18,11 @@ export function SearchBar({ onSearch }: SearchBarProps) {
   return (
     <div className="relative group flex-1 max-w-sm">
       <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-        <Search className="h-4 w-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+        <Search className="h-4 w-4 text-slate-500 group-focus-within:text-indigo-450 transition-colors" />
       </div>
       <input
         type="text"
-        className="block w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl leading-5 text-sm placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-4 focus:ring-blue-50 focus:border-blue-500 transition-all sm:text-sm"
+        className="block w-full pl-10 pr-10 py-2.5 bg-slate-900/60 border border-slate-800 rounded-xl leading-5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:bg-slate-900 focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all sm:text-sm"
         placeholder="Search documents..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}
@@ -30,7 +30,7 @@ export function SearchBar({ onSearch }: SearchBarProps) {
       {query && (
         <button
           onClick={() => setQuery('')}
-          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+          className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
         >
           <X className="h-4 w-4" />
         </button>

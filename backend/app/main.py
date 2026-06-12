@@ -30,11 +30,16 @@ async def check_neon_db() -> bool:
     """Check Neon DB connectivity using psycopg2"""
     try:
         import psycopg2
-        from psycopg2 import sql
-        
-        # Parse the DATABASE_URL
-        db_url = settings.DATABASE_URL
-        
+        from urllib.parse import urlparse, parse_qsl, urlencode, urlunparse
+
+        # Strip Prisma-only query params (pgbouncer, connection_limit) that
+        # psycopg2 doesn't recognize as valid DSN parameters
+        parsed = urlparse(settings.DATABASE_URL)
+        query = dict(parse_qsl(parsed.query))
+        query.pop("pgbouncer", None)
+        query.pop("connection_limit", None)
+        db_url = urlunparse(parsed._replace(query=urlencode(query)))
+
         # Connect with timeout
         conn = psycopg2.connect(db_url, connect_timeout=10)
         with conn.cursor() as cur:
@@ -162,14 +167,10 @@ async def lifespan(app: FastAPI):
         db=db,
         celery_app=celery_app,
         health_check_interval=settings.SCHEDULER_HEALTH_CHECK_INTERVAL,
-        max_concurrency=settings.SCHEDULER_MAX_CONCURRENCY
     )
     await scheduler.start()
     logger.info("Task scheduler started")
-    
-    # Store scheduler in app state for access by services
-    app.state.scheduler = scheduler
-    
+
     yield
 
     # Shutdown — mark in-flight documents as failed and clear the queue

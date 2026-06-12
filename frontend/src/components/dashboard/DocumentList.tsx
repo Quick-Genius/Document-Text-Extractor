@@ -85,11 +85,11 @@ export function DocumentList() {
       cell: ({ row }) => {
         const status = row.original.status;
         const iconColorMap: Record<string, string> = {
-          'PENDING': 'text-slate-500 bg-slate-100',
-          'QUEUED': 'text-slate-500 bg-slate-100',
-          'PROCESSING': 'text-blue-600 bg-blue-100 ring-2 ring-blue-100',
-          'COMPLETED': 'text-primary-container bg-primary-fixed/30',
-          'FAILED': 'text-error bg-error-container',
+          'PENDING': 'text-slate-400 bg-slate-900 border border-slate-800',
+          'QUEUED': 'text-slate-400 bg-slate-900 border border-slate-800',
+          'PROCESSING': 'text-blue-400 bg-blue-950/40 border border-blue-900/30 ring-2 ring-blue-900/10',
+          'COMPLETED': 'text-indigo-400 bg-indigo-950/40 border border-indigo-900/30',
+          'FAILED': 'text-rose-400 bg-rose-950/40 border border-rose-900/30',
         };
         const iconMap: Record<string, string> = {
           'PENDING': 'pending',
@@ -118,11 +118,11 @@ export function DocumentList() {
       cell: ({ row }) => {
         const status = row.getValue('status') as string;
         const colorMap: Record<string, string> = {
-          'PENDING': 'bg-slate-100 text-slate-600',
-          'QUEUED': 'bg-slate-100 text-slate-600',
-          'PROCESSING': 'bg-blue-100 text-blue-700 shadow-[0_0_12px_rgba(59,130,246,0.5)]',
-          'COMPLETED': 'bg-emerald-100 text-emerald-700',
-          'FAILED': 'bg-error-container text-error',
+          'PENDING': 'bg-slate-900/60 text-slate-400 border border-slate-850',
+          'QUEUED': 'bg-slate-900/60 text-slate-400 border border-slate-850',
+          'PROCESSING': 'bg-blue-950/50 text-blue-400 border border-blue-900/30 shadow-[0_0_15px_rgba(59,130,246,0.15)]',
+          'COMPLETED': 'bg-emerald-950/50 text-emerald-400 border border-emerald-900/30',
+          'FAILED': 'bg-rose-950/50 text-rose-400 border border-rose-900/30',
         };
         const dotMap: Record<string, string> = {
           'PENDING': 'bg-slate-400',

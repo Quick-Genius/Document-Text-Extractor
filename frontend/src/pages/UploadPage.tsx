@@ -80,21 +80,21 @@ export function UploadPage() {
 
           {/* Feature Cards (Asymmetric/Bento Style) */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-8 rounded-lg bg-surface-container-low border border-outline-variant/10 flex flex-col gap-4 group hover:bg-white hover:shadow-xl transition-all">
+            <div className="p-8 rounded-xl bg-surface-container-low border border-outline-variant/10 flex flex-col gap-4 group hover:bg-slate-900/40 hover:border-indigo-500/20 hover:shadow-[0_15px_30px_rgba(0,0,0,0.25)] transition-all">
               <div className="w-12 h-12 rounded-xl signature-gradient flex items-center justify-center text-white">
                 <span className="material-symbols-outlined">psychology</span>
               </div>
               <h3 className="font-bold text-xl text-on-surface">Auto-Extraction</h3>
               <p className="text-sm text-on-surface-variant leading-relaxed">Our neural networks automatically pull key-value pairs, tables, and dates with 99.9% accuracy.</p>
             </div>
-            <div className="p-8 rounded-lg bg-surface-container-low border border-outline-variant/10 flex flex-col gap-4 group hover:bg-white hover:shadow-xl transition-all">
+            <div className="p-8 rounded-xl bg-surface-container-low border border-outline-variant/10 flex flex-col gap-4 group hover:bg-slate-900/40 hover:border-indigo-500/20 hover:shadow-[0_15px_30px_rgba(0,0,0,0.25)] transition-all">
               <div className="w-12 h-12 rounded-xl signature-gradient flex items-center justify-center text-white">
                 <span className="material-symbols-outlined">category</span>
               </div>
               <h3 className="font-bold text-xl text-on-surface">Smart Categorization</h3>
               <p className="text-sm text-on-surface-variant leading-relaxed">Files are instantly tagged and sorted into the correct workflow folders based on content intent.</p>
             </div>
-            <div className="p-8 rounded-lg bg-surface-container-low border border-outline-variant/10 flex flex-col gap-4 group hover:bg-white hover:shadow-xl transition-all">
+            <div className="p-8 rounded-xl bg-surface-container-low border border-outline-variant/10 flex flex-col gap-4 group hover:bg-slate-900/40 hover:border-indigo-500/20 hover:shadow-[0_15px_30px_rgba(0,0,0,0.25)] transition-all">
               <div className="w-12 h-12 rounded-xl signature-gradient flex items-center justify-center text-white">
                 <span className="material-symbols-outlined">bolt</span>
               </div>

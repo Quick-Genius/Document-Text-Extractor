@@ -107,9 +107,8 @@ def _enqueue(document_id: str, file_path: str) -> str:
 
 
 class DocumentService:
-    def __init__(self, scheduler=None):
+    def __init__(self):
         self.storage = StorageService()
-        self.scheduler = scheduler
 
     async def _get_or_create_user(self, db, user_id: str):
         user = await db.user.find_unique(where={"clerkId": user_id})
@@ -293,9 +292,6 @@ class DocumentService:
                 await db.document.delete(where={"id": document_id})
             else:
                 await db.document.update(where={"id": document_id}, data={"filePath": "", "status": "CANCELLED"})
-
-            if self.scheduler:
-                await self.scheduler.trigger_immediate_check()
         finally:
             await db.disconnect()
 
@@ -328,8 +324,6 @@ class DocumentService:
             })
 
             updated = await db.document.find_unique(where={"id": document_id}, include={"job": True})
-            if self.scheduler:
-                await self.scheduler.trigger_immediate_check()
             return _doc_response(updated)
         finally:
             await db.disconnect()
@@ -370,8 +364,6 @@ class DocumentService:
             process_document_task.apply_async(args=[document_id, file_path], task_id=task_id)
 
             updated = await db.document.find_unique(where={"id": document_id}, include={"job": True})
-            if self.scheduler:
-                await self.scheduler.trigger_immediate_check()
             return _doc_response(updated)
         finally:
             await db.disconnect()

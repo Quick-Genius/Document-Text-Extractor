@@ -19,13 +19,13 @@ export function EditForm({ data, onSave, onFinalize, isReadOnly = false }: EditF
       {!isReadOnly && (isDirty || isSubmitSuccessful) && (
         <div className="md:col-span-2 flex items-center justify-end pt-2">
           {isDirty && (
-            <div className="flex items-center gap-2 px-3 py-1 bg-amber-50 text-amber-700 rounded-full border border-amber-200">
+            <div className="flex items-center gap-2 px-3 py-1 bg-amber-950/40 text-amber-400 rounded-full border border-amber-900/40">
               <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
               <span className="text-[10px] font-bold tracking-widest uppercase">Unsaved Changes</span>
             </div>
           )}
           {isSubmitSuccessful && !isDirty && (
-            <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200">
+            <div className="flex items-center gap-2 px-3 py-1 bg-emerald-950/40 text-emerald-450 rounded-full border border-emerald-900/40">
               <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
               <span className="text-[10px] font-bold tracking-widest uppercase">Changes Saved</span>
             </div>
@@ -38,7 +38,7 @@ export function EditForm({ data, onSave, onFinalize, isReadOnly = false }: EditF
         <input
           {...register('title')}
           disabled={isReadOnly}
-          className="bg-surface-container-low border-none rounded-xl px-5 py-4 focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all text-on-surface font-medium disabled:opacity-70 outline-none"
+          className="bg-surface-container-low border border-slate-800/40 rounded-xl px-5 py-4 focus:ring-2 focus:ring-indigo-500/20 focus:bg-slate-900 transition-all text-on-surface font-medium disabled:opacity-70 outline-none"
           placeholder="Enter document title..."
         />
       </div>
@@ -48,7 +48,7 @@ export function EditForm({ data, onSave, onFinalize, isReadOnly = false }: EditF
         <input
           {...register('category')}
           disabled={isReadOnly}
-          className="bg-surface-container-low border-none rounded-xl px-5 py-4 focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all text-on-surface font-medium disabled:opacity-70 outline-none"
+          className="bg-surface-container-low border border-slate-800/40 rounded-xl px-5 py-4 focus:ring-2 focus:ring-indigo-500/20 focus:bg-slate-900 transition-all text-on-surface font-medium disabled:opacity-70 outline-none"
           placeholder="e.g. Invoice, Report..."
         />
       </div>
@@ -71,7 +71,7 @@ export function EditForm({ data, onSave, onFinalize, isReadOnly = false }: EditF
           {...register('summary')}
           disabled={isReadOnly}
           rows={5}
-          className="bg-surface-container-low border-none rounded-xl px-5 py-4 focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all text-on-surface leading-relaxed disabled:opacity-70 resize-none outline-none"
+          className="bg-surface-container-low border border-slate-800/40 rounded-xl px-5 py-4 focus:ring-2 focus:ring-indigo-500/20 focus:bg-slate-900 transition-all text-on-surface leading-relaxed disabled:opacity-70 resize-none outline-none"
           placeholder="Brief summary of the document content..."
         />
       </div>
@@ -82,7 +82,7 @@ export function EditForm({ data, onSave, onFinalize, isReadOnly = false }: EditF
           {...register('extractedText')}
           disabled={isReadOnly}
           rows={12}
-          className="bg-surface-container-low border-none rounded-xl px-5 py-4 focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all text-on-surface leading-relaxed disabled:opacity-70 resize-y outline-none font-mono text-sm"
+          className="bg-surface-container-low border border-slate-800/40 rounded-xl px-5 py-4 focus:ring-2 focus:ring-indigo-500/20 focus:bg-slate-900 transition-all text-on-surface leading-relaxed disabled:opacity-70 resize-y outline-none font-mono text-sm"
           placeholder="Full extracted text from the document..."
         />
       </div>

@@ -176,9 +176,9 @@ export function FileUploader({ onUploadComplete }: FileUploaderProps) {
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="flex items-center gap-4 p-4 bg-surface-container-low rounded-lg border border-outline-variant/10 hover:bg-white hover:shadow-sm transition-all"
+              className="flex items-center gap-4 p-4 bg-surface-container-low rounded-lg border border-outline-variant/10 hover:bg-slate-900/40 hover:border-indigo-500/15 hover:shadow-md transition-all"
             >
-              <div className="w-10 h-10 rounded-lg bg-white shadow-sm flex items-center justify-center text-primary flex-shrink-0">
+              <div className="w-10 h-10 rounded-lg bg-slate-950 border border-slate-900 shadow-sm flex items-center justify-center text-primary flex-shrink-0">
                 <span className="material-symbols-outlined">{getFileIcon(doc.fileType)}</span>
               </div>
               <div className="min-w-0 flex-grow">
@@ -272,12 +272,12 @@ export function FileUploader({ onUploadComplete }: FileUploaderProps) {
         {...getRootProps()}
         className={`group relative border-2 border-dashed rounded-lg p-12 transition-all cursor-pointer
           ${isDragActive 
-            ? 'border-primary-container/60 bg-primary-fixed/5' 
-            : 'border-outline-variant/40 hover:border-primary-container/60 hover:bg-primary-fixed/5'}`}
+            ? 'border-indigo-500/50 bg-indigo-500/5' 
+            : 'border-outline-variant/30 hover:border-indigo-500/40 hover:bg-indigo-500/5'}`}
       >
         <input {...getInputProps()} />
         <div className="flex flex-col items-center text-center space-y-4">
-          <div className="w-16 h-16 rounded-full bg-primary-fixed/30 flex items-center justify-center text-primary transition-transform group-hover:scale-110">
+          <div className="w-16 h-16 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-primary transition-transform group-hover:scale-110">
             <span className="material-symbols-outlined text-4xl">upload_file</span>
           </div>
           <div className="space-y-1">
@@ -293,9 +293,9 @@ export function FileUploader({ onUploadComplete }: FileUploaderProps) {
       {files.length > 0 && (
         <div className="mt-8 space-y-3 max-h-64 overflow-y-auto pr-2">
           {files.map((file, index) => (
-            <div key={`${file.name}-${index}`} className={`flex items-center justify-between p-4 bg-surface-container-low rounded-md transition-colors ${isUploading ? 'opacity-70' : 'hover:bg-surface-container-high'}`}>
+            <div key={`${file.name}-${index}`} className={`flex items-center justify-between p-4 bg-surface-container-low rounded-md border border-outline-variant/10 transition-colors ${isUploading ? 'opacity-70' : 'hover:bg-slate-900/40 hover:border-indigo-500/15'}`}>
               <div className="flex items-center gap-4 overflow-hidden">
-                <div className="flex-shrink-0 w-10 h-10 rounded bg-white flex items-center justify-center text-primary-container shadow-sm">
+                <div className="flex-shrink-0 w-10 h-10 rounded bg-slate-950 border border-slate-900 flex items-center justify-center text-primary-container shadow-sm">
                   <span className="material-symbols-outlined">{file.type.includes('image') ? 'image' : 'description'}</span>
                 </div>
                 <div className="truncate min-w-0">

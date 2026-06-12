@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status as http_status, Form, Request
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status as http_status, Form
 from pydantic import BaseModel
 from typing import List, Optional
 from app.core.auth import get_current_user_id
@@ -11,10 +11,8 @@ import os
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-def get_document_service(request: Request) -> DocumentService:
-    """Dependency to get DocumentService with scheduler"""
-    scheduler = getattr(request.app.state, 'scheduler', None)
-    return DocumentService(scheduler=scheduler)
+def get_document_service() -> DocumentService:
+    return DocumentService()
 
 class DashboardStats(BaseModel):
     active_jobs: int
