@@ -46,7 +46,8 @@ Thumbs.db
 .vscode/
 
 # Kiro specs (internal)
-.kiro/
+.kiro/specs 
 
 # Docker
 docker-compose.override.yml
+recovery-codes.txt 

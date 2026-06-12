@@ -12,3 +12,4 @@ samples/
 tests/
 *.md
 .DS_Store
+recovery-codes.txt 
