@@ -102,6 +102,7 @@ class CallbackTask(Task):
                     "type": "job_failed", "jobId": doc.job.id, "error": error, "timestamp": time.time()
                 })
                 await redis.delete(f"job:cancel:{doc.job.id}")
+                await redis.srem("active_documents", document_id)
         finally:
             await disconnect_prisma_with_timeout(db, timeout=10)
             try:
@@ -170,6 +171,7 @@ async def _process(task: Task, document_id: str, file_path: str):
         await _progress(db, redis, job_id, "job_started", "Starting", 0)
         await db.job.update(where={"id": job_id}, data={"status": "PROCESSING", "startedAt": datetime.now()})
         await db.document.update(where={"id": document_id}, data={"status": "PROCESSING"})
+        await redis.sadd("active_documents", document_id)
 
         # --- Stage: Parse ---
         await _progress(db, redis, job_id, "parsing_started", "Parsing document", 10)
@@ -232,6 +234,7 @@ async def _process(task: Task, document_id: str, file_path: str):
         await db.job.update(where={"id": job_id}, data={"status": "COMPLETED", "completedAt": datetime.now()})
         await db.document.update(where={"id": document_id}, data={"status": "COMPLETED"})
         await redis.delete(f"job:cancel:{job_id}")
+        await redis.srem("active_documents", document_id)
 
         logger.info(f"Processed document {document_id}")
         return {"status": "completed", "document_id": document_id, "processed_data_id": result.id}
@@ -247,6 +250,7 @@ async def _process(task: Task, document_id: str, file_path: str):
                 await _progress(db, redis, job_id, "job_failed", str(e), 0)
             except Exception:
                 pass
+        await redis.srem("active_documents", document_id)
         raise
 
     finally:
@@ -273,6 +277,7 @@ async def _cancel(db, redis, job_id: str, document_id: str):
     await db.document.update(where={"id": document_id}, data={"status": "CANCELLED"})
     await _progress(db, redis, job_id, "job_cancelled", "Cancelled", 0)
     await redis.delete(f"job:cancel:{job_id}")
+    await redis.srem("active_documents", document_id)
 
 
 async def _progress(db, redis, job_id: str, event_type: str, message: str, progress: int):

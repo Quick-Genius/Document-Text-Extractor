@@ -87,11 +87,14 @@ async def check_aws_s3() -> bool:
         return False
 
 
-async def _shutdown_cleanup(db):
+async def _shutdown_cleanup():
     """
     On shutdown: mark all PROCESSING/QUEUED documents as FAILED
     and purge the Celery queue so nothing is left dangling.
     """
+    from app.utils.db_pool import get_prisma_with_pool
+    db = get_prisma_with_pool()
+    await db.connect()
     try:
         from datetime import datetime
 
@@ -132,6 +135,8 @@ async def _shutdown_cleanup(db):
 
     except Exception as e:
         logger.error(f"Shutdown cleanup failed: {e}", exc_info=True)
+    finally:
+        await db.disconnect()
 
 
 @asynccontextmanager
@@ -160,11 +165,8 @@ async def lifespan(app: FastAPI):
     await websocket_manager.start()   # ← start Redis pub/sub listener
     
     # Initialize and start task scheduler
-    db = get_prisma_with_pool()
-    await db.connect()
-    
     scheduler = TaskScheduler(
-        db=db,
+        db=None,
         celery_app=celery_app,
         health_check_interval=settings.SCHEDULER_HEALTH_CHECK_INTERVAL,
     )
@@ -175,10 +177,9 @@ async def lifespan(app: FastAPI):
 
     # Shutdown — mark in-flight documents as failed and clear the queue
     logger.info("Shutting down application...")
-    await _shutdown_cleanup(db)
+    await _shutdown_cleanup()
     await scheduler.stop()
     logger.info("Task scheduler stopped")
-    await db.disconnect()
     await websocket_manager.stop()
     await redis_client.disconnect()
 

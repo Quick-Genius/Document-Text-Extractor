@@ -87,6 +87,26 @@ class RedisClient:
             return await self.redis.delete(*keys)
         return 0
 
+    async def sadd(self, key, *values):
+        if not self.redis:
+            await self.connect()
+        return await self.redis.sadd(key, *values)
+
+    async def srem(self, key, *values):
+        if not self.redis:
+            await self.connect()
+        return await self.redis.srem(key, *values)
+
+    async def scard(self, key):
+        if not self.redis:
+            await self.connect()
+        return await self.redis.scard(key)
+
+    async def smembers(self, key):
+        if not self.redis:
+            await self.connect()
+        return await self.redis.smembers(key)
+
 
 class TaskRedisClient:
     """
@@ -127,6 +147,18 @@ class TaskRedisClient:
         if keys:
             return await self.redis.delete(*keys)
         return 0
+
+    async def sadd(self, key, *values):
+        return await self.redis.sadd(key, *values)
+
+    async def srem(self, key, *values):
+        return await self.redis.srem(key, *values)
+
+    async def scard(self, key):
+        return await self.redis.scard(key)
+
+    async def smembers(self, key):
+        return await self.redis.smembers(key)
 
     async def close(self):
         if self.redis:

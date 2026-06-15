@@ -168,11 +168,13 @@ class DocumentService:
                     created.append({"doc_id": doc.id, "job_id": job.id, "file_path": u["file_path"]})
 
             # Step 3: Enqueue each task (update DB to QUEUED first, then dispatch)
+            from app.utils.redis_client import redis_client
             for c in created:
                 try:
                     task_id = str(uuid.uuid4())
                     await db.job.update(where={"id": c["job_id"]}, data={"celeryTaskId": task_id, "status": "QUEUED"})
                     await db.document.update(where={"id": c["doc_id"]}, data={"status": "QUEUED"})
+                    await redis_client.sadd("active_documents", c["doc_id"])
                     process_document_task.apply_async(args=[c["doc_id"], c["file_path"]], task_id=task_id)
                     logger.info(f"Enqueued document {c['doc_id']} task {task_id}")
                 except Exception as e:
@@ -181,6 +183,7 @@ class DocumentService:
                     await db.job.update(where={"id": c["job_id"]}, data={
                         "status": "FAILED", "failedAt": datetime.now(), "errorMessage": str(e)
                     })
+                    await redis_client.srem("active_documents", c["doc_id"])
 
             # Fetch and return all documents
             docs = []
@@ -284,14 +287,17 @@ class DocumentService:
                 await redis_client.set(f"job:cancel:{doc.job.id}", "1", ex=60)
                 await db.job.update(where={"id": doc.job.id}, data={"status": "CANCELLED"})
                 await redis_client.delete(f"job:cancel:{doc.job.id}")
+                await redis_client.srem("active_documents", document_id)
 
             if doc.filePath:
                 await self.storage.delete_file(doc.filePath)
 
             if permanent:
                 await db.document.delete(where={"id": document_id})
+                await redis_client.srem("active_documents", document_id)
             else:
                 await db.document.update(where={"id": document_id}, data={"filePath": "", "status": "CANCELLED"})
+                await redis_client.srem("active_documents", document_id)
         finally:
             await db.disconnect()
 
@@ -319,6 +325,7 @@ class DocumentService:
             await db.job.update(where={"id": doc.job.id}, data={"status": "CANCELLED"})
             await db.document.update(where={"id": document_id}, data={"status": "CANCELLED"})
             await redis_client.delete(f"job:cancel:{doc.job.id}")
+            await redis_client.srem("active_documents", document_id)
             await redis_client.publish(f"progress:{doc.job.id}", {
                 "type": "job_cancelled", "jobId": doc.job.id, "timestamp": time.time()
             })
@@ -361,6 +368,8 @@ class DocumentService:
                 "retryCount": new_retry, "errorMessage": None, "failedAt": None
             })
             await db.document.update(where={"id": document_id}, data={"status": "QUEUED"})
+            from app.utils.redis_client import redis_client
+            await redis_client.sadd("active_documents", document_id)
             process_document_task.apply_async(args=[document_id, file_path], task_id=task_id)
 
             updated = await db.document.find_unique(where={"id": document_id}, include={"job": True})
@@ -428,6 +437,8 @@ class DocumentService:
             task_id = str(uuid.uuid4())
             await db.job.update(where={"id": doc.job.id}, data={"celeryTaskId": task_id, "status": "QUEUED"})
             await db.document.update(where={"id": document_id}, data={"status": "QUEUED"})
+            from app.utils.redis_client import redis_client
+            await redis_client.sadd("active_documents", document_id)
             process_document_task.apply_async(args=[document_id, doc.filePath], task_id=task_id)
             return {"id": document_id, "status": "QUEUED"}
         finally:

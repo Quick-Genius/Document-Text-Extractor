@@ -67,12 +67,33 @@ class StuckDocumentRecovery:
         configured threshold (a much shorter threshold for QUEUED documents
         when no workers are active at all).
         """
+        from app.utils.redis_client import redis_client
+
+        redis_active_ids = await redis_client.smembers("active_documents")
+        if not redis_active_ids:
+            return []
+
+        # Find these documents in the database
         processing_docs = await self.db.document.find_many(
-            where={"status": {"in": ["PROCESSING", "QUEUED"]}},
+            where={"id": {"in": list(redis_active_ids)}},
             include={"job": True}
         )
 
-        if not processing_docs:
+        db_docs_dict = {doc.id: doc for doc in processing_docs}
+
+        # Self-healing: if a document is in Redis but not in the DB, or is not in PENDING/QUEUED/PROCESSING, remove it from Redis!
+        for doc_id in list(redis_active_ids):
+            doc = db_docs_dict.get(doc_id)
+            if not doc or doc.status not in ("PENDING", "QUEUED", "PROCESSING"):
+                logger.info(
+                    f"[RECOVERY] Self-healing: removing inactive/missing document {doc_id} "
+                    f"(status: {doc.status if doc else 'DELETED'}) from Redis active_documents"
+                )
+                await redis_client.srem("active_documents", doc_id)
+
+        # Filter processing_docs to only include in-progress states (QUEUED/PROCESSING)
+        active_db_docs = [doc for doc in processing_docs if doc.status in ("PROCESSING", "QUEUED")]
+        if not active_db_docs:
             return []
 
         active_tasks = await self.inspector.get_active_tasks()
@@ -82,7 +103,7 @@ class StuckDocumentRecovery:
         stuck_threshold = datetime.now(timezone.utc) - timedelta(seconds=settings.SCHEDULER_STUCK_THRESHOLD)
 
         stuck_doc_ids = []
-        for doc in processing_docs:
+        for doc in active_db_docs:
             if not doc.job:
                 continue
 
