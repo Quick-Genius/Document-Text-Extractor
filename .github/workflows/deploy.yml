@@ -21,9 +21,9 @@ jobs:
           script: |
             cd ~/Document-Text-Extractor
 
-            git pull origin main
+            git fetch origin
 
-            docker compose down
+            git reset --hard origin/main
 
             docker compose build
 
